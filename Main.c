@@ -4,12 +4,15 @@
 #include <windows.h>
 #pragma warning(pop)
 
+#include <stdint.h>
+
 #include "Main.h"
 
 BOOL gGameIsRunning;
 HWND gGameWindow;
 
-GAMEBITMAP gDrawingSurface;
+GAMEBITMAP gBackBuffer;
+MONITORINFO gMonitorInfo = { sizeof(MONITORINFO) };
 
 INT WINAPI WinMain(HINSTANCE Instance, HINSTANCE PreviousInstance, PSTR CommandLine, INT CmdShow)
 {
@@ -29,19 +32,21 @@ INT WINAPI WinMain(HINSTANCE Instance, HINSTANCE PreviousInstance, PSTR CommandL
 		goto Exit;
 	}
 
-	gDrawingSurface.BitmapInfo.bmiHeader.biSize = sizeof(gDrawingSurface.BitmapInfo.bmiHeader);
-	gDrawingSurface.BitmapInfo.bmiHeader.biWidth = GAME_RES_WIDTH;
-	gDrawingSurface.BitmapInfo.bmiHeader.biHeight = GAME_RES_HEIGHT;
-	gDrawingSurface.BitmapInfo.bmiHeader.biBitCount = GAME_BPP;
-	gDrawingSurface.BitmapInfo.bmiHeader.biCompression = BI_RGB;
-	gDrawingSurface.BitmapInfo.bmiHeader.biPlanes = 1;
-	gDrawingSurface.Memory = VirtualAlloc(NULL, GAME_DRAWING_AREA_MEMORY_SIZE, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+	gBackBuffer.BitmapInfo.bmiHeader.biSize = sizeof(gBackBuffer.BitmapInfo.bmiHeader);
+	gBackBuffer.BitmapInfo.bmiHeader.biWidth = GAME_RES_WIDTH;
+	gBackBuffer.BitmapInfo.bmiHeader.biHeight = GAME_RES_HEIGHT;
+	gBackBuffer.BitmapInfo.bmiHeader.biBitCount = GAME_BPP;
+	gBackBuffer.BitmapInfo.bmiHeader.biCompression = BI_RGB;
+	gBackBuffer.BitmapInfo.bmiHeader.biPlanes = 1;
+	gBackBuffer.Memory = VirtualAlloc(NULL, GAME_DRAWING_AREA_MEMORY_SIZE, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 
-	if ((gDrawingSurface.Memory) == NULL) {
+	if ((gBackBuffer.Memory) == NULL) {
 		MessageBoxA(NULL, "Failded to allocate memory for drawing surface!", "Error!",
 			MB_ICONEXCLAMATION | MB_OK);
 		return(0);
 	}
+
+	memset(gBackBuffer.Memory, 0xFF, GAME_DRAWING_AREA_MEMORY_SIZE);
 
 	MSG Message = { 0 };
 	gGameIsRunning = TRUE;
@@ -100,7 +105,7 @@ DWORD CreateMainGameWindow(_In_ HINSTANCE Instance)
 	WindowClass.hInstance = Instance; // same as GetModuleHandleA(NULL);
 	WindowClass.hIcon = LoadIconA(NULL, IDI_APPLICATION);
 	WindowClass.hCursor = LoadCursorA(NULL, IDC_ARROW);
-	WindowClass.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+	WindowClass.hbrBackground = CreateSolidBrush(RGB(255, 0, 255));
 	WindowClass.lpszMenuName = NULL;
 	WindowClass.lpszClassName = GAME_NAME "_WINDOWCLASS";
 	WindowClass.hIconSm = LoadIconA(NULL, IDI_APPLICATION);
@@ -130,6 +135,17 @@ DWORD CreateMainGameWindow(_In_ HINSTANCE Instance)
 
 		goto Exit;
 	}
+
+
+	if (GetMonitorInfoA(MonitorFromWindow(gGameWindow, MONITOR_DEFAULTTOPRIMARY), &gMonitorInfo) == FALSE) 
+	{
+		Result = ERROR_MONITOR_NO_DESCRIPTOR;
+
+		goto Exit;
+	}
+
+	int MonitorWidth = gMonitorInfo.rcMonitor.right - gMonitorInfo.rcMonitor.left;
+	int MonitorHeight = gMonitorInfo.rcMonitor.bottom - gMonitorInfo.rcMonitor.top;
 
 Exit:
 	return(Result);
@@ -161,5 +177,8 @@ void ProcessPlayerInput(void)
 
 void RenderFrameGraphics(void)
 {
+	HDC DeviceContext = GetDC(gGameWindow);
+	StretchDIBits(DeviceContext, 0, 0, 100, 100, 0, 0, 100, 100, gBackBuffer.Memory, &gBackBuffer.BitmapInfo, DIB_RGB_COLORS, SRCCOPY);
+	ReleaseDC(gGameWindow, DeviceContext);
 
 }
