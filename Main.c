@@ -14,6 +14,9 @@ HWND gGameWindow;
 GAMEBITMAP gBackBuffer;
 MONITORINFO gMonitorInfo = { sizeof(MONITORINFO) };
 
+int32_t gMonitorWidth;
+int32_t gMonitorHeight;
+
 INT WINAPI WinMain(HINSTANCE Instance, HINSTANCE PreviousInstance, PSTR CommandLine, INT CmdShow)
 {
 
@@ -110,6 +113,8 @@ DWORD CreateMainGameWindow(_In_ HINSTANCE Instance)
 	WindowClass.lpszClassName = GAME_NAME "_WINDOWCLASS";
 	WindowClass.hIconSm = LoadIconA(NULL, IDI_APPLICATION);
 
+	//SetProcessDpiAwarenessContext(DPI_AWARENESS_PER_MONITOR_AWARE_2);
+
 	if (RegisterClassExA(&WindowClass) == 0)
 	{
 		Result = GetLastError();
@@ -119,11 +124,11 @@ DWORD CreateMainGameWindow(_In_ HINSTANCE Instance)
 	}
 
 	gGameWindow = CreateWindowEx(
-		WS_EX_CLIENTEDGE,
+		0,
 		WindowClass.lpszClassName,
 		"Game B title!! baby!!!",
 		WS_OVERLAPPEDWINDOW | WS_VISIBLE,
-		CW_USEDEFAULT, CW_USEDEFAULT, 640, 480,
+		CW_USEDEFAULT, CW_USEDEFAULT, GAME_RES_WIDTH, GAME_RES_HEIGHT,
 		NULL, NULL, WindowClass.hInstance, NULL);
 
 	if (gGameWindow == NULL)
@@ -137,15 +142,32 @@ DWORD CreateMainGameWindow(_In_ HINSTANCE Instance)
 	}
 
 
-	if (GetMonitorInfoA(MonitorFromWindow(gGameWindow, MONITOR_DEFAULTTOPRIMARY), &gMonitorInfo) == FALSE) 
+	if (GetMonitorInfoA(MonitorFromWindow(gGameWindow, MONITOR_DEFAULTTOPRIMARY), &gMonitorInfo) == FALSE)
 	{
 		Result = ERROR_MONITOR_NO_DESCRIPTOR;
 
 		goto Exit;
 	}
 
-	int MonitorWidth = gMonitorInfo.rcMonitor.right - gMonitorInfo.rcMonitor.left;
-	int MonitorHeight = gMonitorInfo.rcMonitor.bottom - gMonitorInfo.rcMonitor.top;
+	gMonitorWidth = gMonitorInfo.rcMonitor.right - gMonitorInfo.rcMonitor.left;
+	gMonitorHeight = gMonitorInfo.rcMonitor.bottom - gMonitorInfo.rcMonitor.top;
+
+	if (SetWindowLongPtrA(gGameWindow, GWL_STYLE, (WS_OVERLAPPEDWINDOW | WS_VISIBLE) & ~WS_OVERLAPPEDWINDOW) == 0)
+	{
+		Result = GetLastError();
+
+		goto Exit;
+	}
+
+	if (SetWindowPos(gGameWindow, HWND_TOP,
+		gMonitorInfo.rcMonitor.left, gMonitorInfo.rcMonitor.top,
+		gMonitorWidth, gMonitorHeight,
+		SWP_NOOWNERZORDER | SWP_FRAMECHANGED) == 0)
+	{
+		Result = GetLastError();
+
+		goto Exit;
+	}
 
 Exit:
 	return(Result);
@@ -168,17 +190,48 @@ BOOL GameIsAlreadyRunning(void)
 
 void ProcessPlayerInput(void)
 {
-	SHORT EscapeKeyIsDown = GetAsyncKeyState(VK_ESCAPE);
+	BOOL EscapeKeyIsDown = GetAsyncKeyState(VK_ESCAPE) & VK_ESCAPE;
 
-	if (EscapeKeyIsDown) {
+	if (EscapeKeyIsDown == TRUE) {
 		SendMessageA(gGameWindow, WM_CLOSE, 0, 0);
 	}
 }
 
 void RenderFrameGraphics(void)
 {
+	PIXEL32 Pixel = { 0 };
+	PIXEL32 Pixel2 = { 0 };
+
+	Pixel.Blue = 0x7F;
+	Pixel.Green = 0;
+	Pixel.Red = 0;
+
+	Pixel.Alpha = 0xFF;
+
+
+	Pixel2.Blue = 0;
+	Pixel2.Green = 0;
+	Pixel2.Red = 0xAF;
+
+	Pixel2.Alpha = 0xFF;
+
+	// memset(gBackBuffer.Memory, 0xFF, GAME_DRAWING_AREA_MEMORY_SIZE / 2);
+	for (int x = 0; x < GAME_RES_WIDTH * GAME_RES_HEIGHT / 4; x++)
+	{
+		memcpy((PIXEL32*)gBackBuffer.Memory + x, &Pixel, sizeof(PIXEL32));
+	}
+
+	for (int x = (GAME_RES_WIDTH * GAME_RES_HEIGHT) - 1; x > GAME_RES_WIDTH * GAME_RES_HEIGHT / 1.481; x--)
+	{
+		memcpy((PIXEL32*)gBackBuffer.Memory + x, &Pixel2, sizeof(PIXEL32));
+	}
+
+	// memcpy(gBackBuffer.Memory, &Pixel, GAME_DRAWING_AREA_MEMORY_SIZE / 2);
+
 	HDC DeviceContext = GetDC(gGameWindow);
-	StretchDIBits(DeviceContext, 0, 0, 100, 100, 0, 0, 100, 100, gBackBuffer.Memory, &gBackBuffer.BitmapInfo, DIB_RGB_COLORS, SRCCOPY);
+	StretchDIBits(DeviceContext, 0, 0, gMonitorWidth, gMonitorHeight,
+		0, 0, GAME_RES_WIDTH, GAME_RES_HEIGHT,
+		gBackBuffer.Memory, &gBackBuffer.BitmapInfo, DIB_RGB_COLORS, SRCCOPY);
 	ReleaseDC(gGameWindow, DeviceContext);
 
 }
