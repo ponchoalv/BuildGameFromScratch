@@ -6,10 +6,11 @@
 #define GAME_BPP		32
 #define GAME_DRAWING_AREA_MEMORY_SIZE (GAME_RES_WIDTH * GAME_RES_HEIGHT * (GAME_BPP / 8))
 #define CALCULATE_AVG_FPS_EVERY_X_FRAMES 100
-
+#define TARGET_MICROSECONDS_PER_FRAME 16667
 
 #pragma warning(disable: 4820) // Disable warning about structure padding.
-#pragma warning(disable: 5045) // Disable warking about Spectre/Meltdown CPU vulnerability.
+#pragma warning(disable: 5045) // Disable warning about Spectre/Meltdown CPU vulnerability.
+#pragma warning(disable: 4710) // Disable warning about inline imposibility on _snprintf_S
 
 typedef struct GAMEBITMAP
 {
@@ -26,16 +27,14 @@ typedef struct PIXEL32
 } PIXEL32;
 
 
+
 typedef struct GAMEPERFDATA
 {
 	uint64_t TotalFramesRendered;
-	uint32_t RawFramesPerSecondAverage;
-	uint32_t CookedFramesPerSecondAverage;
+	float RawFPSAverage;
+	float CookedFPSAverage;
 
-	LARGE_INTEGER PerfFrequency;
-	LARGE_INTEGER FrameStart;
-	LARGE_INTEGER FrameEnd;
-	LARGE_INTEGER ElapsedMicrosecondsPerFrame;
+	int64_t PerfFrequency;
 
 	MONITORINFO MonitorInfo;
 	int32_t MonitorWidth;
