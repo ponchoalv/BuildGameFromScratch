@@ -31,6 +31,7 @@ typedef struct PIXEL32
 typedef struct GAMEPERFDATA
 {
 	uint64_t TotalFramesRendered;
+
 	float RawFPSAverage;
 	float CookedFPSAverage;
 
@@ -39,6 +40,8 @@ typedef struct GAMEPERFDATA
 	MONITORINFO MonitorInfo;
 	int32_t MonitorWidth;
 	int32_t MonitorHeight;
+
+	BOOL DisplayDebugInfo;
 
 } GAMEPERFDATA;
 
