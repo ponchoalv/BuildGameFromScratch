@@ -7,20 +7,21 @@
 #include <stdint.h>
 #include "Main.h"
 
-BOOL gGameIsRunning;
+
 HWND gGameWindow;
-
+BOOL gGameIsRunning;
 GAMEBITMAP gBackBuffer;
-
 GAMEPERFDATA gPerformanceData;
+BOOL gBackgroundDraw;
 
-INT WINAPI WinMain(HINSTANCE Instance, HINSTANCE PreviousInstance, PSTR CommandLine, INT CmdShow)
+INT __stdcall WinMain(HINSTANCE Instance, HINSTANCE PreviousInstance, PSTR CommandLine, INT CmdShow)
 {
 
 	UNREFERENCED_PARAMETER(PreviousInstance);
 	UNREFERENCED_PARAMETER(CommandLine);
 	UNREFERENCED_PARAMETER(CmdShow);
 
+	MSG Message = { 0 };
 	int64_t FrameStart = 0;
 	int64_t FrameEnd = 0;
 	int64_t ElapsedMicrosecondsPerFrame = 0;
@@ -51,12 +52,12 @@ INT WINAPI WinMain(HINSTANCE Instance, HINSTANCE PreviousInstance, PSTR CommandL
 	if ((gBackBuffer.Memory) == NULL) {
 		MessageBoxA(NULL, "Failded to allocate memory for drawing surface!", "Error!",
 			MB_ICONEXCLAMATION | MB_OK);
-		return(0);
+		goto Exit;
 	}
 
 	memset(gBackBuffer.Memory, 0xFF, GAME_DRAWING_AREA_MEMORY_SIZE);
 
-	MSG Message = { 0 };
+
 	gGameIsRunning = TRUE;
 
 	while (gGameIsRunning == TRUE)
@@ -64,7 +65,6 @@ INT WINAPI WinMain(HINSTANCE Instance, HINSTANCE PreviousInstance, PSTR CommandL
 		QueryPerformanceCounter((LARGE_INTEGER*)&FrameStart);
 
 		while (PeekMessageA(&Message, gGameWindow, 0, 0, PM_REMOVE)) {
-			TranslateMessage(&Message);
 			DispatchMessageA(&Message);
 		}
 
@@ -75,18 +75,16 @@ INT WINAPI WinMain(HINSTANCE Instance, HINSTANCE PreviousInstance, PSTR CommandL
 		ElapsedMicrosecondsPerFrame = FrameEnd - FrameStart;
 		ElapsedMicrosecondsPerFrame *= 1000000;
 		ElapsedMicrosecondsPerFrame /= gPerformanceData.PerfFrequency;
-
 		gPerformanceData.TotalFramesRendered++;
 		ElapsedMicrosecondsPerFrameAccumulatorRaw += ElapsedMicrosecondsPerFrame;
-	
-		while (ElapsedMicrosecondsPerFrame < TARGET_MICROSECONDS_PER_FRAME * 36 / 60)
+
+		while (ElapsedMicrosecondsPerFrame <= TARGET_MICROSECONDS_PER_FRAME)
 		{
-			Sleep(0);
+			Sleep(1); // Could be anywhere from 1ms to a full system timer tick? (~15.625ms)
 
 			ElapsedMicrosecondsPerFrame = FrameEnd - FrameStart;
 			ElapsedMicrosecondsPerFrame *= 1000000;
 			ElapsedMicrosecondsPerFrame /= gPerformanceData.PerfFrequency;
-
 			QueryPerformanceCounter((LARGE_INTEGER*)&FrameEnd);
 		}
 
@@ -95,21 +93,8 @@ INT WINAPI WinMain(HINSTANCE Instance, HINSTANCE PreviousInstance, PSTR CommandL
 
 		if (gPerformanceData.TotalFramesRendered % CALCULATE_AVG_FPS_EVERY_X_FRAMES == 0)
 		{
-			int64_t AverageMicrosecondsPerFrame = ElapsedMicrosecondsPerFrameAccumulatorRaw / CALCULATE_AVG_FPS_EVERY_X_FRAMES;
-			float AverageMillisecondsPerFrame = AverageMicrosecondsPerFrame * 0.001f;
-			int64_t AverageMicrosecondsPerFrameCooked = ElapsedMicrosecondsPerFrameAccumulatorCooked / CALCULATE_AVG_FPS_EVERY_X_FRAMES;
-
-			gPerformanceData.RawFPSAverage = 1.0f / ((ElapsedMicrosecondsPerFrameAccumulatorRaw / 60) * 0.000001f);
-			gPerformanceData.CookedFPSAverage = 1.0f / ((ElapsedMicrosecondsPerFrameAccumulatorCooked / 60) * 0.000001f);
-
-			char str[128] = { 0 };
-			
-			_snprintf_s(str, _countof(str), _TRUNCATE, 
-				"Avg milliseconds/frame raw: %0.02f\tAvg FPS Cooked: %.01f\tAvg FPS Raw: %.01f\n",
-				AverageMillisecondsPerFrame,
-				gPerformanceData.CookedFPSAverage,
-				gPerformanceData.RawFPSAverage);
-			OutputDebugStringA(str);
+			gPerformanceData.RawFPSAverage = 1.0f / ((ElapsedMicrosecondsPerFrameAccumulatorRaw / CALCULATE_AVG_FPS_EVERY_X_FRAMES) * 0.000001f);
+			gPerformanceData.CookedFPSAverage = 1.0f / ((ElapsedMicrosecondsPerFrameAccumulatorCooked / CALCULATE_AVG_FPS_EVERY_X_FRAMES) * 0.000001f);
 
 			ElapsedMicrosecondsPerFrameAccumulatorRaw = 0;
 			ElapsedMicrosecondsPerFrameAccumulatorCooked = 0;
@@ -155,11 +140,11 @@ DWORD CreateMainGameWindow(_In_ HINSTANCE Instance)
 	WindowClass.cbWndExtra = 0;
 	WindowClass.hInstance = Instance; // same as GetModuleHandleA(NULL);
 	WindowClass.hIcon = LoadIconA(NULL, IDI_APPLICATION);
+	WindowClass.hIconSm = LoadIconA(NULL, IDI_APPLICATION);
 	WindowClass.hCursor = LoadCursorA(NULL, IDC_ARROW);
 	WindowClass.hbrBackground = CreateSolidBrush(RGB(255, 0, 255));
 	WindowClass.lpszMenuName = NULL;
 	WindowClass.lpszClassName = GAME_NAME "_WINDOWCLASS";
-	WindowClass.hIconSm = LoadIconA(NULL, IDI_APPLICATION);
 
 	//SetProcessDpiAwarenessContext(DPI_AWARENESS_PER_MONITOR_AWARE_2);
 
@@ -171,11 +156,11 @@ DWORD CreateMainGameWindow(_In_ HINSTANCE Instance)
 		goto Exit;
 	}
 
-	gGameWindow = CreateWindowEx(
+	gGameWindow = CreateWindowExA(
 		0,
 		WindowClass.lpszClassName,
-		"Game B title!! baby!!!",
-		WS_OVERLAPPEDWINDOW | WS_VISIBLE,
+		"Window Title!",
+		WS_VISIBLE,
 		CW_USEDEFAULT, CW_USEDEFAULT, GAME_RES_WIDTH, GAME_RES_HEIGHT,
 		NULL, NULL, WindowClass.hInstance, NULL);
 
@@ -201,7 +186,7 @@ DWORD CreateMainGameWindow(_In_ HINSTANCE Instance)
 	gPerformanceData.MonitorWidth = gPerformanceData.MonitorInfo.rcMonitor.right - gPerformanceData.MonitorInfo.rcMonitor.left;
 	gPerformanceData.MonitorHeight = gPerformanceData.MonitorInfo.rcMonitor.bottom - gPerformanceData.MonitorInfo.rcMonitor.top;
 
-	if (SetWindowLongPtrA(gGameWindow, GWL_STYLE, (WS_OVERLAPPEDWINDOW | WS_VISIBLE) & ~WS_OVERLAPPEDWINDOW) == 0)
+	if (SetWindowLongPtrA(gGameWindow, GWL_STYLE, WS_VISIBLE) == 0)
 	{
 		Result = GetLastError();
 
@@ -241,17 +226,28 @@ BOOL GameIsAlreadyRunning(void)
 
 void ProcessPlayerInput(void)
 {
-	BOOL EscapeKeyIsDown = GetAsyncKeyState(VK_ESCAPE) & VK_ESCAPE;
+	int16_t EscapeKeyIsDown = GetAsyncKeyState(VK_ESCAPE);
+	int16_t DebugKeyIsDown = GetAsyncKeyState(VK_F1);
 
-	if (EscapeKeyIsDown == TRUE) {
+	static int16_t DebugKeyWasDown;
+
+	if (EscapeKeyIsDown) {
 		SendMessageA(gGameWindow, WM_CLOSE, 0, 0);
 	}
+
+	if (DebugKeyIsDown && !DebugKeyWasDown)
+	{
+		gPerformanceData.DisplayDebugInfo = !gPerformanceData.DisplayDebugInfo;
+	}
+
+	DebugKeyWasDown = DebugKeyIsDown;
 }
 
 void RenderFrameGraphics(void)
 {
 	PIXEL32 Pixel = { 0 };
 	PIXEL32 Pixel2 = { 0 };
+	char DebugTextBuffer[64] = { 0 };
 
 	Pixel.Blue = 0x7F;
 	Pixel.Green = 0;
@@ -262,19 +258,39 @@ void RenderFrameGraphics(void)
 	Pixel2.Green = 0;
 	Pixel2.Red = 0xAF;
 	Pixel2.Alpha = 0xFF;
-	
+
 	// memset(gBackBuffer.Memory, 0xFF, GAME_DRAWING_AREA_MEMORY_SIZE / 2);
-	for (int x = 0; x < GAME_RES_WIDTH * GAME_RES_HEIGHT / 4; x++)
+	if (!gBackgroundDraw)
 	{
-		memcpy_s((PIXEL32*)gBackBuffer.Memory + x, sizeof(PIXEL32), &Pixel, sizeof(PIXEL32));
-	}
+		for (int x = 0; x < GAME_RES_WIDTH * GAME_RES_HEIGHT / 4; x++)
+		{
+			memcpy_s((PIXEL32*)gBackBuffer.Memory + x, sizeof(PIXEL32), &Pixel, sizeof(PIXEL32));
+		}
 
-	for (int x = (GAME_RES_WIDTH * GAME_RES_HEIGHT) - 1; x > GAME_RES_WIDTH * GAME_RES_HEIGHT / (1.50000001); x--)
-	{
-		memcpy_s((PIXEL32*)gBackBuffer.Memory + x, sizeof(PIXEL32), &Pixel2, sizeof(PIXEL32));
-	}
+		for (int x = (GAME_RES_WIDTH * GAME_RES_HEIGHT) - 1; x > GAME_RES_WIDTH * GAME_RES_HEIGHT / (1.50000001); x--)
+		{
+			memcpy_s((PIXEL32*)gBackBuffer.Memory + x, sizeof(PIXEL32), &Pixel2, sizeof(PIXEL32));
+		}
 
+		int32_t ScreenX = 25;
+		int32_t ScreenY = 25;
+
+		int32_t StartingScreenPixel = ((GAME_RES_WIDTH * GAME_RES_HEIGHT) - GAME_RES_WIDTH) - \
+			(GAME_RES_WIDTH * ScreenY) + ScreenX;
+
+		for (int32_t y = 0; y < 16; y++)
+		{
+			for (int32_t x = 0; x < 16; x++)
+			{
+				memset((PIXEL32*)gBackBuffer.Memory + (uintptr_t)StartingScreenPixel + x - ((uintptr_t)GAME_RES_WIDTH * y), 0xFF, sizeof(PIXEL32));
+			}
+		}
+
+		gBackgroundDraw = !gBackgroundDraw;
+	}
+	
 	HDC DeviceContext = GetDC(gGameWindow);
+
 	StretchDIBits(DeviceContext,
 		0,
 		0,
@@ -288,5 +304,19 @@ void RenderFrameGraphics(void)
 		&gBackBuffer.BitmapInfo,
 		DIB_RGB_COLORS,
 		SRCCOPY);
+
+	if (gPerformanceData.DisplayDebugInfo == TRUE)
+	{
+		SelectObject(DeviceContext, (HFONT)GetStockObject(ANSI_FIXED_FONT));
+		SetTextColor(DeviceContext, RGB(255, 0, 255));
+
+		sprintf_s(DebugTextBuffer, sizeof(DebugTextBuffer), "FPS RAW:    %.01f", gPerformanceData.RawFPSAverage);
+		TextOutA(DeviceContext, 0, 0, DebugTextBuffer, (int)strlen(DebugTextBuffer));
+
+		sprintf_s(DebugTextBuffer, sizeof(DebugTextBuffer), "FPS Cooked: %.01f", gPerformanceData.CookedFPSAverage);
+		TextOutA(DeviceContext, 0, 13, DebugTextBuffer, (int)strlen(DebugTextBuffer));
+
+	}
+
 	ReleaseDC(gGameWindow, DeviceContext);
 }
