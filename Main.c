@@ -1,6 +1,7 @@
 #pragma warning(push, 3)
 #include <stdio.h>
 #include <windows.h>
+#include <psapi.h>
 #include <emmintrin.h>
 #pragma warning(pop)
 
@@ -24,8 +25,10 @@ INT __stdcall WinMain(HINSTANCE Instance, HINSTANCE PreviousInstance, PSTR Comma
 	int64_t FrameStart = 0;
 	int64_t FrameEnd = 0;
 	int64_t ElapsedMicroseconds = 0;
-	int64_t ElapsedMicrosecondsPerFrameAccumulatorRaw = 0;
-	int64_t ElapsedMicrosecondsPerFrameAccumulatorCooked = 0;
+	int64_t ElapsedMicrosecondsAccumulatorRaw = 0;
+	int64_t ElapsedMicrosecondsAccumulatorCooked = 0;
+
+	GetSystemInfo(&gPerformanceData.SystemInfo);
 
 	if (GameIsAlreadyRunning() == TRUE)
 	{
@@ -78,7 +81,7 @@ INT __stdcall WinMain(HINSTANCE Instance, HINSTANCE PreviousInstance, PSTR Comma
 		ElapsedMicroseconds *= 1000000;
 		ElapsedMicroseconds /= gPerformanceData.PerfFrequency;
 		gPerformanceData.TotalFramesRendered++;
-		ElapsedMicrosecondsPerFrameAccumulatorRaw += ElapsedMicroseconds;
+		ElapsedMicrosecondsAccumulatorRaw += ElapsedMicroseconds;
 
 		while (ElapsedMicroseconds < TARGET_MICROSECONDS_PER_FRAME)
 		{
@@ -87,21 +90,43 @@ INT __stdcall WinMain(HINSTANCE Instance, HINSTANCE PreviousInstance, PSTR Comma
 			ElapsedMicroseconds /= gPerformanceData.PerfFrequency;
 			QueryPerformanceCounter((LARGE_INTEGER*)&FrameEnd);
 
-			if (ElapsedMicroseconds < ((int64_t)TARGET_MICROSECONDS_PER_FRAME * 0.75f))
+			if (ElapsedMicroseconds < ((int64_t)TARGET_MICROSECONDS_PER_FRAME * 0.80f))
 			{
 				Sleep(1); // Could be anywhere from 1ms to a full system timer tick? (~15.625ms)
 			}
 		}
 
-		ElapsedMicrosecondsPerFrameAccumulatorCooked += ElapsedMicroseconds;
+		ElapsedMicrosecondsAccumulatorCooked += ElapsedMicroseconds;
 
 		if (gPerformanceData.TotalFramesRendered % CALCULATE_AVG_FPS_EVERY_X_FRAMES == 0)
 		{
-			gPerformanceData.RawFPSAverage = 1.0f / ((ElapsedMicrosecondsPerFrameAccumulatorRaw / CALCULATE_AVG_FPS_EVERY_X_FRAMES) * 0.000001f);
-			gPerformanceData.CookedFPSAverage = 1.0f / ((ElapsedMicrosecondsPerFrameAccumulatorCooked / CALCULATE_AVG_FPS_EVERY_X_FRAMES) * 0.000001f);
+			GetSystemTimeAsFileTime((FILETIME*)&gPerformanceData.CurrentSystemTime);
 
-			ElapsedMicrosecondsPerFrameAccumulatorRaw = 0;
-			ElapsedMicrosecondsPerFrameAccumulatorCooked = 0;
+			GetProcessTimes(GetCurrentProcess(), 
+				(FILETIME*)&gPerformanceData.ProcessCreationTime,
+				(FILETIME*)&gPerformanceData.ProcessExitTime,
+				(FILETIME*)&gPerformanceData.CurrentKernelCPUTime,
+				(FILETIME*)&gPerformanceData.CurrentUserCPUTime);
+
+			gPerformanceData.CPUPercent = (gPerformanceData.CurrentKernelCPUTime - gPerformanceData.PreviousKernelCPUTime) + \
+				(double)(gPerformanceData.CurrentUserCPUTime - gPerformanceData.PreviousUserCPUTime);
+
+			gPerformanceData.CPUPercent /= (gPerformanceData.CurrentSystemTime - gPerformanceData.PreviousSystemTime);
+			gPerformanceData.CPUPercent /= gPerformanceData.SystemInfo.dwNumberOfProcessors;
+			gPerformanceData.CPUPercent *= 100;
+
+			GetProcessHandleCount(GetCurrentProcess(), &gPerformanceData.HandleCount);
+			K32GetProcessMemoryInfo(GetCurrentProcess(), (PROCESS_MEMORY_COUNTERS*)&gPerformanceData.MemInfo, sizeof(gPerformanceData.MemInfo));
+
+			gPerformanceData.RawFPSAverage = 1.0f / ((ElapsedMicrosecondsAccumulatorRaw / CALCULATE_AVG_FPS_EVERY_X_FRAMES) * 0.000001f);
+			gPerformanceData.CookedFPSAverage = 1.0f / ((ElapsedMicrosecondsAccumulatorCooked / CALCULATE_AVG_FPS_EVERY_X_FRAMES) * 0.000001f);
+
+			ElapsedMicrosecondsAccumulatorRaw = 0;
+			ElapsedMicrosecondsAccumulatorCooked = 0;
+
+			gPerformanceData.PreviousKernelCPUTime = gPerformanceData.CurrentKernelCPUTime;
+			gPerformanceData.PreviousUserCPUTime = gPerformanceData.CurrentUserCPUTime;
+			gPerformanceData.PreviousSystemTime = gPerformanceData.CurrentSystemTime;
 		}
 	}
 
@@ -331,6 +356,15 @@ void RenderFrameGraphics(void)
 
 		sprintf_s(DebugTextBuffer, sizeof(DebugTextBuffer), "FPS Cooked: %.01f", gPerformanceData.CookedFPSAverage);
 		TextOutA(DeviceContext, 0, 13, DebugTextBuffer, (int)strlen(DebugTextBuffer));
+		
+		sprintf_s(DebugTextBuffer, sizeof(DebugTextBuffer), "Handles:    %lu", gPerformanceData.HandleCount);
+		TextOutA(DeviceContext, 0, 26, DebugTextBuffer, (int)strlen(DebugTextBuffer));
+		
+		sprintf_s(DebugTextBuffer, sizeof(DebugTextBuffer), "Memory:     %lluKB", gPerformanceData.MemInfo.PrivateUsage / 1024);
+		TextOutA(DeviceContext, 0, 39, DebugTextBuffer, (int)strlen(DebugTextBuffer));
+
+		sprintf_s(DebugTextBuffer, sizeof(DebugTextBuffer), "CPU:        %0.2f%%", gPerformanceData.CPUPercent);
+		TextOutA(DeviceContext, 0, 52, DebugTextBuffer, (int)strlen(DebugTextBuffer));
 	}
 
 	ReleaseDC(gGameWindow, DeviceContext);
@@ -339,9 +373,9 @@ void RenderFrameGraphics(void)
 #ifdef SIMD
 __forceinline void ClearScreen(_In_ __m128i* Color)
 {
-	for (int x = 0; x < GAME_RES_WIDTH * GAME_RES_HEIGHT; x += 4)
+	for (int x = 0; x < ((GAME_RES_WIDTH * GAME_RES_HEIGHT) / 4); x++)
 	{
-		_mm_store_si128((PIXEL32*)gBackBuffer.Memory + x, *Color);
+		_mm_store_si128((__m128i*)gBackBuffer.Memory + x, *Color);
 	}
 }
 #else
