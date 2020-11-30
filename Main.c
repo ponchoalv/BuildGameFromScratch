@@ -14,7 +14,7 @@ HWND gGameWindow;
 BOOL gGameIsRunning;
 GAMEBITMAP gBackBuffer;
 GAMEPERFDATA gPerformanceData;
-PLAYER gPlayer;
+HERO gPlayer;
 BOOL gWindowHasForcus;
 
 INT __stdcall WinMain(HINSTANCE Instance, HINSTANCE PreviousInstance, PSTR CommandLine, INT CmdShow)
@@ -31,12 +31,12 @@ INT __stdcall WinMain(HINSTANCE Instance, HINSTANCE PreviousInstance, PSTR Comma
 	int64_t ElapsedMicrosecondsAccumulatorRaw = 0;
 	int64_t ElapsedMicrosecondsAccumulatorCooked = 0;
 
-	FILETIME ProcessCreationTime	= { 0 };
-	FILETIME ProcessExitTime		= { 0 };
-	int64_t CurrentUserCPUTime		= 0;
-	int64_t CurrentKernelCPUTime	= 0;
-	int64_t PreviousUserCPUTime		= 0;
-	int64_t PreviousKernelCPUTime	= 0;
+	FILETIME ProcessCreationTime = { 0 };
+	FILETIME ProcessExitTime = { 0 };
+	int64_t CurrentUserCPUTime = 0;
+	int64_t CurrentKernelCPUTime = 0;
+	int64_t PreviousUserCPUTime = 0;
+	int64_t PreviousKernelCPUTime = 0;
 
 	HANDLE ProcessHandle = GetCurrentProcess();
 
@@ -93,8 +93,11 @@ INT __stdcall WinMain(HINSTANCE Instance, HINSTANCE PreviousInstance, PSTR Comma
 
 	memset(gBackBuffer.Memory, 0xCC, GAME_DRAWING_AREA_MEMORY_SIZE);
 
-	gPlayer.ScreenPosX = 25;
-	gPlayer.ScreenPosY = 25;
+	if (InitializeHero() != ERROR_SUCCESS) {
+		MessageBoxA(NULL, "Failed to initialize hero!", "Error!",
+			MB_ICONEXCLAMATION | MB_OK);
+		goto Exit;
+	}
 
 	gGameIsRunning = TRUE;
 
@@ -135,7 +138,7 @@ INT __stdcall WinMain(HINSTANCE Instance, HINSTANCE PreviousInstance, PSTR Comma
 		{
 			GetSystemTimeAsFileTime((FILETIME*)&gPerformanceData.CurrentSystemTime);
 
-			GetProcessTimes(ProcessHandle, 
+			GetProcessTimes(ProcessHandle,
 				&ProcessCreationTime,
 				&ProcessExitTime,
 				(FILETIME*)&CurrentKernelCPUTime,
@@ -151,14 +154,14 @@ INT __stdcall WinMain(HINSTANCE Instance, HINSTANCE PreviousInstance, PSTR Comma
 			GetProcessHandleCount(ProcessHandle, &gPerformanceData.HandleCount);
 			K32GetProcessMemoryInfo(ProcessHandle, (PROCESS_MEMORY_COUNTERS*)&gPerformanceData.MemInfo, sizeof(gPerformanceData.MemInfo));
 
-			gPerformanceData.RawFPSAverage		= 1.0f / ((ElapsedMicrosecondsAccumulatorRaw / CALCULATE_AVG_FPS_EVERY_X_FRAMES) * 0.000001f);
-			gPerformanceData.CookedFPSAverage	= 1.0f / ((ElapsedMicrosecondsAccumulatorCooked / CALCULATE_AVG_FPS_EVERY_X_FRAMES) * 0.000001f);
+			gPerformanceData.RawFPSAverage = 1.0f / ((ElapsedMicrosecondsAccumulatorRaw / CALCULATE_AVG_FPS_EVERY_X_FRAMES) * 0.000001f);
+			gPerformanceData.CookedFPSAverage = 1.0f / ((ElapsedMicrosecondsAccumulatorCooked / CALCULATE_AVG_FPS_EVERY_X_FRAMES) * 0.000001f);
 
-			ElapsedMicrosecondsAccumulatorRaw	 = 0;
+			ElapsedMicrosecondsAccumulatorRaw = 0;
 			ElapsedMicrosecondsAccumulatorCooked = 0;
 
-			PreviousKernelCPUTime				= CurrentKernelCPUTime;
-			PreviousUserCPUTime					= CurrentUserCPUTime;
+			PreviousKernelCPUTime = CurrentKernelCPUTime;
+			PreviousUserCPUTime = CurrentUserCPUTime;
 			gPerformanceData.PreviousSystemTime = gPerformanceData.CurrentSystemTime;
 		}
 	}
@@ -194,7 +197,7 @@ LRESULT CALLBACK MainWindowProc(_In_ HWND WindowHandler, _In_ UINT Message, _In_
 
 			gWindowHasForcus = TRUE;
 		}
-		
+
 		break;
 	}
 
@@ -344,7 +347,7 @@ __forceinline void ProcessPlayerInput(void)
 
 	if (UpKeyIsDown && (gPlayer.ScreenPosY > 0))
 	{
-			gPlayer.ScreenPosY--;	
+		gPlayer.ScreenPosY--;
 	}
 
 	if (DownKeyIsDown && (gPlayer.ScreenPosY < GAME_RES_HEIGHT - 16))
@@ -372,19 +375,7 @@ void RenderFrameGraphics(void)
 #endif
 	char DebugTextBuffer[64] = { 0 };
 
-	int32_t ScreenX = gPlayer.ScreenPosX;
-	int32_t ScreenY = gPlayer.ScreenPosY;
-
-	int32_t StartingScreenPixel = ((GAME_RES_WIDTH * GAME_RES_HEIGHT) - GAME_RES_WIDTH) - \
-		(GAME_RES_WIDTH * ScreenY) + ScreenX;
-
-	for (int32_t y = 0; y < 16; y++)
-	{
-		for (int32_t x = 0; x < 16; x++)
-		{
-			memset((PIXEL32*)gBackBuffer.Memory + (uintptr_t)StartingScreenPixel + x - ((uintptr_t)GAME_RES_WIDTH * y), 0xFF, sizeof(PIXEL32));
-		}
-	}
+	Load32BppBitmapOnScreen(&gPlayer.Sprite[SUIT_0][FACING_DOWN_0], gPlayer.ScreenPosX, gPlayer.ScreenPosY);
 
 	HDC DeviceContext = GetDC(gGameWindow);
 
@@ -412,10 +403,10 @@ void RenderFrameGraphics(void)
 
 		sprintf_s(DebugTextBuffer, sizeof(DebugTextBuffer), "FPS Cooked: %.01f", gPerformanceData.CookedFPSAverage);
 		TextOutA(DeviceContext, 0, 13, DebugTextBuffer, (int)strlen(DebugTextBuffer));
-		
+
 		sprintf_s(DebugTextBuffer, sizeof(DebugTextBuffer), "Handles:    %lu", gPerformanceData.HandleCount);
 		TextOutA(DeviceContext, 0, 26, DebugTextBuffer, (int)strlen(DebugTextBuffer));
-		
+
 		sprintf_s(DebugTextBuffer, sizeof(DebugTextBuffer), "Memory:     %lluKB", gPerformanceData.MemInfo.PrivateUsage / 1024);
 		TextOutA(DeviceContext, 0, 39, DebugTextBuffer, (int)strlen(DebugTextBuffer));
 
@@ -424,6 +415,176 @@ void RenderFrameGraphics(void)
 	}
 
 	ReleaseDC(gGameWindow, DeviceContext);
+}
+
+DWORD Load32BppBitmapFromFile(char* FileName, GAMEBITMAP* GameBitmap)
+{
+	DWORD Result = ERROR_SUCCESS;
+
+	HANDLE FileHandle = INVALID_HANDLE_VALUE;
+
+	FileHandle = CreateFileA(FileName, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+
+	WORD BitmapHeader = 0;
+	DWORD PixelDataOffset = 0;
+	DWORD NumberOfBytesRead = 0;
+	DWORD FileLenght = 0;
+
+	if (GetLastError() == ERROR_FILE_NOT_FOUND)
+	{
+		Result = ERROR_FILE_NOT_FOUND;
+
+		MessageBoxA(NULL, "Failded loading Bitmap from disk, file not found", "Error", MB_ICONEXCLAMATION | MB_OK);
+
+		goto Exit;
+	}
+
+	if (ReadFile(FileHandle, &BitmapHeader, 2, &NumberOfBytesRead, NULL) == 0)
+	{
+		Result = GetLastError();
+
+		goto Exit;
+	}
+
+	if (BitmapHeader != 0x4d42) // "BM" Backwards
+	{
+		Result = ERROR_FILE_INVALID;
+
+		goto Exit;
+	}
+
+	if (ReadFile(FileHandle, &FileLenght, 4, &NumberOfBytesRead, NULL) == 0)
+	{
+		Result = GetLastError();
+
+		goto Exit;
+	}
+
+	if (SetFilePointer(FileHandle, 0x0A, NULL, FILE_BEGIN) == INVALID_SET_FILE_POINTER)
+	{
+		Result = GetLastError();
+
+		goto Exit;
+	}
+
+	if (ReadFile(FileHandle, &PixelDataOffset, sizeof(DWORD), &NumberOfBytesRead, NULL) == 0)
+	{
+		Result = GetLastError();
+
+		goto Exit;
+	}
+
+	if (SetFilePointer(FileHandle, 0xE, NULL, FILE_BEGIN) == INVALID_SET_FILE_POINTER)
+	{
+		Result = GetLastError();
+
+		goto Exit;
+	}
+
+	if (ReadFile(FileHandle, &GameBitmap->BitmapInfo.bmiHeader, sizeof(BITMAPINFOHEADER), &NumberOfBytesRead, NULL) == 0)
+	{
+		Result = GetLastError();
+
+		goto Exit;
+	}
+
+	GameBitmap->Memory = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, GameBitmap->BitmapInfo.bmiHeader.biSizeImage);
+
+	if (GameBitmap->Memory == NULL)
+	{
+		Result = ERROR_NOT_ENOUGH_MEMORY;
+
+		goto Exit;
+	}
+
+	if (SetFilePointer(FileHandle, PixelDataOffset, NULL, FILE_BEGIN) == INVALID_SET_FILE_POINTER)
+	{
+		Result = GetLastError();
+
+		goto Exit;
+	}
+
+	if (ReadFile(FileHandle, GameBitmap->Memory, GameBitmap->BitmapInfo.bmiHeader.biSizeImage, &NumberOfBytesRead, NULL) == 0)
+	{
+		Result = GetLastError();
+
+		goto Exit;
+	}
+
+Exit:
+	if (FileHandle && FileHandle != INVALID_HANDLE_VALUE)
+	{
+		CloseHandle(FileHandle);
+	}
+
+	return Result;
+}
+
+DWORD InitializeHero(void)
+{
+	DWORD Result = ERROR_SUCCESS;
+
+	gPlayer.ScreenPosX = 25;
+	gPlayer.ScreenPosY = 25;
+
+	Result = Load32BppBitmapFromFile("Assets\\Hero_Suit0_Down_Standing.bmpx", &gPlayer.Sprite[SUIT_0][FACING_DOWN_0]);
+
+	if (Result != ERROR_SUCCESS)
+	{
+		MessageBoxA(NULL, "Load32BppBitmapFromFile failded!", "Error", MB_ICONEXCLAMATION | MB_OK);
+		goto Exit;
+	}
+
+	Result = Load32BppBitmapFromFile("Assets\\Hero_Suit0_Down_Walk1.bmpx", &gPlayer.Sprite[SUIT_0][FACING_DOWN_1]);
+
+	if (Result != ERROR_SUCCESS)
+	{
+		MessageBoxA(NULL, "Load32BppBitmapFromFile failded!", "Error", MB_ICONEXCLAMATION | MB_OK);
+		goto Exit;
+	}
+
+	Result = Load32BppBitmapFromFile("Assets\\Hero_Suit0_Down_Walk2.bmpx", &gPlayer.Sprite[SUIT_0][FACING_DOWN_2]);
+
+	if (Result != ERROR_SUCCESS)
+	{
+		MessageBoxA(NULL, "Load32BppBitmapFromFile failded!", "Error", MB_ICONEXCLAMATION | MB_OK);
+		goto Exit;
+	}
+
+Exit:
+	return(Result);
+}
+
+void Load32BppBitmapOnScreen(_In_ GAMEBITMAP* GameBitmap, _In_ int16_t ScreenPosX, _In_ int16_t ScreenPosY)
+{
+	int32_t StartingScreenPixel = ((GAME_RES_WIDTH * GAME_RES_HEIGHT) - GAME_RES_WIDTH) - \
+		(GAME_RES_WIDTH * ScreenPosY) + ScreenPosX;
+
+	int32_t StartingBitmapPixel = (GameBitmap->BitmapInfo.bmiHeader.biHeight * GameBitmap->BitmapInfo.bmiHeader.biWidth) -\
+		GameBitmap->BitmapInfo.bmiHeader.biWidth;
+
+	PIXEL32 BitmapPixel = { 0 };
+
+	uint32_t ScreenOffset = 0;
+	uint32_t BitmapOffset = 0;
+
+
+	for (int16_t PixelY = 0; PixelY < GameBitmap->BitmapInfo.bmiHeader.biHeight; PixelY++)
+	{
+		for (int16_t PixelX = 0; PixelX < GameBitmap->BitmapInfo.bmiHeader.biWidth; PixelX++)
+		{
+			ScreenOffset = StartingScreenPixel + PixelX - (GAME_RES_WIDTH * PixelY);
+			BitmapOffset = StartingBitmapPixel + PixelX - (GameBitmap->BitmapInfo.bmiHeader.biWidth * PixelY);
+
+			memcpy_s(&BitmapPixel, sizeof(PIXEL32), (PIXEL32 *)GameBitmap->Memory + BitmapOffset, sizeof(PIXEL32));
+
+			if (BitmapPixel.Alpha == 255)
+			{
+				memcpy_s((PIXEL32*)gBackBuffer.Memory + ScreenOffset, sizeof(PIXEL32), &BitmapPixel, sizeof(PIXEL32));
+			}
+		}
+	}
+
 }
 
 #ifdef SIMD

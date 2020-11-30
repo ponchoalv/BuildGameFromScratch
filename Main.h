@@ -8,6 +8,24 @@
 #define CALCULATE_AVG_FPS_EVERY_X_FRAMES 120
 #define TARGET_MICROSECONDS_PER_FRAME 16667ULL
 #define SIMD
+#define SUIT_0 0
+#define SUIT_1 1
+#define SUIT_2 2
+#define FACING_DOWN_0		0
+#define FACING_DOWN_1		1
+#define FACING_DOWN_2		2
+#define FACING_LEFT_0		3
+#define FACING_LEFT_1		4
+#define FACING_LEFT_2		5
+#define FACING_RIGHT_0		6
+#define FACING_RIGHT_1		7
+#define FACING_RIGHT_2		8
+#define FACING_UPWARD_0		9
+#define FACING_UPWARD_1		10
+#define FACING_UPWARD_2		11
+
+
+
 
 #pragma warning(disable: 4820) // Disable warning about structure padding.
 #pragma warning(disable: 5045) // Disable warning about Spectre/Meltdown CPU vulnerability.
@@ -55,17 +73,19 @@ typedef struct GAMEPERFDATA
 	double CPUPercent;
 } GAMEPERFDATA;
 
-typedef struct PLAYER
+typedef struct HERO
 {
 	char Name[12];
 
-	int32_t ScreenPosX;
-	int32_t ScreenPosY;
+	GAMEBITMAP Sprite[3][12];
+
+	int16_t ScreenPosX;
+	int16_t ScreenPosY;
 
 	int32_t HP;
 	int32_t Strength;
 	int32_t MP;
-} PLAYER;
+} HERO;
 
 DWORD CreateMainGameWindow(_In_ HINSTANCE Instance);
 
@@ -75,6 +95,11 @@ void ProcessPlayerInput(void);
 
 void RenderFrameGraphics(void);
 
+DWORD Load32BppBitmapFromFile(_In_ char* FileName, _Inout_ GAMEBITMAP* GameBitmap);
+
+DWORD InitializeHero(void);
+
+void Load32BppBitmapOnScreen(_In_ GAMEBITMAP* GameBitmap, _In_ int16_t ScreenPosX, _In_ int16_t ScreenPosY);
 
 #ifdef SIMD
 void ClearScreen(_In_ __m128i* Color);
