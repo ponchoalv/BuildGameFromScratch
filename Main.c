@@ -321,6 +321,7 @@ __forceinline void ProcessPlayerInput(void)
 	int16_t UpKeyIsDown = GetAsyncKeyState(VK_UP) | GetAsyncKeyState('W');
 	int16_t DownKeyIsDown = GetAsyncKeyState(VK_DOWN) | GetAsyncKeyState('S');
 
+	int16_t LeftOrRight = RightKeyIsDown || LeftKeyIsDown;
 
 	static int16_t DebugKeyWasDown;
 	static int16_t LeftKeyWasDown;
@@ -338,21 +339,25 @@ __forceinline void ProcessPlayerInput(void)
 	if (LeftKeyIsDown && (gPlayer.ScreenPosX > 0))
 	{
 		gPlayer.ScreenPosX--;
+		IncrementHeroSteps(&gPlayer, FACING_LEFT_0);
 	}
 
 	if (RightKeyIsDown && (gPlayer.ScreenPosX < GAME_RES_WIDTH - 16))
 	{
 		gPlayer.ScreenPosX++;
+		IncrementHeroSteps(&gPlayer, FACING_RIGHT_0);
 	}
 
-	if (UpKeyIsDown && (gPlayer.ScreenPosY > 0))
+	if (UpKeyIsDown && (gPlayer.ScreenPosY > 0) && !LeftOrRight)
 	{
 		gPlayer.ScreenPosY--;
+		IncrementHeroSteps(&gPlayer, FACING_UPWARD_0);
 	}
 
-	if (DownKeyIsDown && (gPlayer.ScreenPosY < GAME_RES_HEIGHT - 16))
+	if (DownKeyIsDown && (gPlayer.ScreenPosY < GAME_RES_HEIGHT - 16) && !LeftOrRight)
 	{
-		gPlayer.ScreenPosY++;
+		gPlayer.ScreenPosY++;	
+		IncrementHeroSteps(&gPlayer, FACING_DOWN_0);
 	}
 
 	DebugKeyWasDown = DebugKeyIsDown;
@@ -375,7 +380,7 @@ void RenderFrameGraphics(void)
 #endif
 	char DebugTextBuffer[64] = { 0 };
 
-	Load32BppBitmapOnScreen(&gPlayer.Sprite[SUIT_0][FACING_DOWN_0], gPlayer.ScreenPosX, gPlayer.ScreenPosY);
+	Load32BppBitmapOnScreen(&gPlayer.Sprite[gPlayer.Suit][gPlayer.Direction], gPlayer.ScreenPosX, gPlayer.ScreenPosY);
 
 	HDC DeviceContext = GetDC(gGameWindow);
 
@@ -524,8 +529,10 @@ DWORD InitializeHero(void)
 {
 	DWORD Result = ERROR_SUCCESS;
 
-	gPlayer.ScreenPosX = 25;
-	gPlayer.ScreenPosY = 25;
+	gPlayer.ScreenPosX = 16;
+	gPlayer.ScreenPosY = 16;
+	gPlayer.Direction = FACING_DOWN_0;
+	gPlayer.Suit = SUIT_0;
 
 	Result = Load32BppBitmapFromFile("Assets\\Hero_Suit0_Down_Standing.bmpx", &gPlayer.Sprite[SUIT_0][FACING_DOWN_0]);
 
@@ -550,6 +557,80 @@ DWORD InitializeHero(void)
 		MessageBoxA(NULL, "Load32BppBitmapFromFile failded!", "Error", MB_ICONEXCLAMATION | MB_OK);
 		goto Exit;
 	}
+
+	Result = Load32BppBitmapFromFile("Assets\\Hero_Suit0_Left_Standing.bmpx", &gPlayer.Sprite[SUIT_0][FACING_LEFT_0]);
+
+	if (Result != ERROR_SUCCESS)
+	{
+		MessageBoxA(NULL, "Load32BppBitmapFromFile failded!", "Error", MB_ICONEXCLAMATION | MB_OK);
+		goto Exit;
+	}
+
+	Result = Load32BppBitmapFromFile("Assets\\Hero_Suit0_Left_Walk1.bmpx", &gPlayer.Sprite[SUIT_0][FACING_LEFT_1]);
+
+	if (Result != ERROR_SUCCESS)
+	{
+		MessageBoxA(NULL, "Load32BppBitmapFromFile failded!", "Error", MB_ICONEXCLAMATION | MB_OK);
+		goto Exit;
+	}
+
+	Result = Load32BppBitmapFromFile("Assets\\Hero_Suit0_LEFT_Walk2.bmpx", &gPlayer.Sprite[SUIT_0][FACING_LEFT_2]);
+
+	if (Result != ERROR_SUCCESS)
+	{
+		MessageBoxA(NULL, "Load32BppBitmapFromFile failded!", "Error", MB_ICONEXCLAMATION | MB_OK);
+		goto Exit;
+	}
+
+	Result = Load32BppBitmapFromFile("Assets\\Hero_Suit0_Right_Standing.bmpx", &gPlayer.Sprite[SUIT_0][FACING_RIGHT_0]);
+
+	if (Result != ERROR_SUCCESS)
+	{
+		MessageBoxA(NULL, "Load32BppBitmapFromFile failded!", "Error", MB_ICONEXCLAMATION | MB_OK);
+		goto Exit;
+	}
+
+	Result = Load32BppBitmapFromFile("Assets\\Hero_Suit0_Right_Walk1.bmpx", &gPlayer.Sprite[SUIT_0][FACING_RIGHT_1]);
+
+	if (Result != ERROR_SUCCESS)
+	{
+		MessageBoxA(NULL, "Load32BppBitmapFromFile failded!", "Error", MB_ICONEXCLAMATION | MB_OK);
+		goto Exit;
+	}
+
+	Result = Load32BppBitmapFromFile("Assets\\Hero_Suit0_Right_Walk2.bmpx", &gPlayer.Sprite[SUIT_0][FACING_RIGHT_2]);
+
+	if (Result != ERROR_SUCCESS)
+	{
+		MessageBoxA(NULL, "Load32BppBitmapFromFile failded!", "Error", MB_ICONEXCLAMATION | MB_OK);
+		goto Exit;
+	}
+
+	Result = Load32BppBitmapFromFile("Assets\\Hero_Suit0_Up_Standing.bmpx", &gPlayer.Sprite[SUIT_0][FACING_UPWARD_0]);
+
+	if (Result != ERROR_SUCCESS)
+	{
+		MessageBoxA(NULL, "Load32BppBitmapFromFile failded!", "Error", MB_ICONEXCLAMATION | MB_OK);
+		goto Exit;
+	}
+
+	Result = Load32BppBitmapFromFile("Assets\\Hero_Suit0_Up_Walk1.bmpx", &gPlayer.Sprite[SUIT_0][FACING_UPWARD_1]);
+
+	if (Result != ERROR_SUCCESS)
+	{
+		MessageBoxA(NULL, "Load32BppBitmapFromFile failded!", "Error", MB_ICONEXCLAMATION | MB_OK);
+		goto Exit;
+	}
+
+	Result = Load32BppBitmapFromFile("Assets\\Hero_Suit0_Up_Walk2.bmpx", &gPlayer.Sprite[SUIT_0][FACING_UPWARD_2]);
+
+	if (Result != ERROR_SUCCESS)
+	{
+		MessageBoxA(NULL, "Load32BppBitmapFromFile failded!", "Error", MB_ICONEXCLAMATION | MB_OK);
+		goto Exit;
+	}
+
+
 
 Exit:
 	return(Result);
@@ -585,6 +666,17 @@ void Load32BppBitmapOnScreen(_In_ GAMEBITMAP* GameBitmap, _In_ int16_t ScreenPos
 		}
 	}
 
+}
+
+void IncrementHeroSteps(HERO* Hero, int8_t Direction)
+{
+	if (++Hero->StepAccumulator % 10 == 0) {
+		Hero->StepAccumulator = 0;
+		Hero->Step += 1;
+		Hero->Step %= 3;
+	}
+
+	Hero->Direction = Direction + Hero->Step;
 }
 
 #ifdef SIMD
