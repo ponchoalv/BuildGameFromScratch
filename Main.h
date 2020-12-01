@@ -82,6 +82,11 @@ typedef struct HERO
 	int16_t ScreenPosX;
 	int16_t ScreenPosY;
 
+	uint8_t AccumulatedMovements;
+	uint8_t Direction;
+	uint8_t CurrentArmor;
+	uint8_t Step;
+
 	int32_t HP;
 	int32_t Strength;
 	int32_t MP;
@@ -100,6 +105,8 @@ DWORD Load32BppBitmapFromFile(_In_ char* FileName, _Inout_ GAMEBITMAP* GameBitma
 DWORD InitializeHero(void);
 
 void Load32BppBitmapOnScreen(_In_ GAMEBITMAP* GameBitmap, _In_ int16_t ScreenPosX, _In_ int16_t ScreenPosY);
+
+void UpdateHeroMovement(_Inout_ HERO* Hero, _In_ uint8_t Direction);
 
 #ifdef SIMD
 void ClearScreen(_In_ __m128i* Color);
