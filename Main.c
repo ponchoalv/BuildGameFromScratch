@@ -357,7 +357,7 @@ __forceinline void ProcessPlayerInput(void)
 		UpdateHeroMovement(&gPlayer, FACING_DOWN_0);
 	}
 
-	if (gPlayer.AccumulatedMovements % 16) {
+	if (gPlayer.AccumulatedMovements % 17) {
 		UpdateHeroMovement(&gPlayer, gPlayer.Direction);
 	}
 
@@ -418,13 +418,13 @@ void RenderFrameGraphics(void)
 
 		sprintf_s(DebugTextBuffer, sizeof(DebugTextBuffer), "CPU:			%0.2f%%", gPerformanceData.CPUPercent);
 		TextOutA(DeviceContext, 0, 52, DebugTextBuffer, (int)strlen(DebugTextBuffer));
-	
+
 		sprintf_s(DebugTextBuffer, sizeof(DebugTextBuffer), "Total Frames:	%llu", gPerformanceData.TotalFramesRendered);
-		TextOutA(DeviceContext, 0, 52, DebugTextBuffer, (int)strlen(DebugTextBuffer));
-	
+		TextOutA(DeviceContext, 0, 65, DebugTextBuffer, (int)strlen(DebugTextBuffer));
+
 		sprintf_s(DebugTextBuffer, sizeof(DebugTextBuffer), "ScreenPos:	(%d, %d) ", gPlayer.ScreenPosX, gPlayer.ScreenPosY);
-		TextOutA(DeviceContext, 0, 52, DebugTextBuffer, (int)strlen(DebugTextBuffer));
-	
+		TextOutA(DeviceContext, 0, 78, DebugTextBuffer, (int)strlen(DebugTextBuffer));
+
 	}
 
 	ReleaseDC(gGameWindow, DeviceContext);
@@ -679,16 +679,14 @@ void Load32BppBitmapOnScreen(_In_ GAMEBITMAP* GameBitmap, _In_ int16_t ScreenPos
 
 void UpdateHeroMovement(_Inout_ HERO* Hero, _In_ uint8_t Direction)
 {
-	Hero->Direction = Direction;
-
-	if (Hero->AccumulatedMovements % 17 == 0) {
+	if (Hero->AccumulatedMovements % 8 == 0) {
 		Hero->Step = ++Hero->Step % 3;
 	}
 
+	if (Hero->AccumulatedMovements % 17) {
+		Hero->AccumulatedMovements++;
 
-	if (++Hero->AccumulatedMovements % 17) {
-
-		switch (Direction)
+		switch (Hero->Direction)
 		{
 		case FACING_DOWN_0:
 		{
@@ -717,7 +715,8 @@ void UpdateHeroMovement(_Inout_ HERO* Hero, _In_ uint8_t Direction)
 	}
 	else
 	{
-		Hero->AccumulatedMovements = 0;
+		Hero->AccumulatedMovements = 1;
+		Hero->Direction = Direction;
 	}
 
 }
