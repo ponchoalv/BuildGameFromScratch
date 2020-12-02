@@ -23,6 +23,7 @@
 #define FACING_UPWARD_0		9
 #define FACING_UPWARD_1		10
 #define FACING_UPWARD_2		11
+#define FONT_SHEET_CHARACTERS_PER_ROW 98
 
 
 
@@ -104,9 +105,11 @@ DWORD Load32BppBitmapFromFile(_In_ char* FileName, _Inout_ GAMEBITMAP* GameBitma
 
 DWORD InitializeHero(void);
 
-void Load32BppBitmapOnScreen(_In_ GAMEBITMAP* GameBitmap, _In_ int16_t ScreenPosX, _In_ int16_t ScreenPosY);
+void Blit32BppBitmapToBuffer(_In_ GAMEBITMAP* GameBitmap, _In_ uint16_t x, _In_ uint16_t y);
 
 void UpdateHeroMovement(_Inout_ HERO* Hero, _In_ uint8_t Direction);
+
+void BlitStringToScreen(_In_ char* String, _In_ GAMEBITMAP* GameBitmap, _In_ uint16_t x, _In_ uint16_t y);
 
 #ifdef SIMD
 void ClearScreen(_In_ __m128i* Color);

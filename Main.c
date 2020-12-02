@@ -13,9 +13,38 @@
 HWND gGameWindow;
 BOOL gGameIsRunning;
 GAMEBITMAP gBackBuffer;
+GAMEBITMAP g6x7Font;
 GAMEPERFDATA gPerformanceData;
 HERO gPlayer;
 BOOL gWindowHasForcus;
+uint8_t charToPixelOffset[] = {
+	//	..	..	..	..	..	..	..	..	..	..	..	..	..	..	..	..	..	..	..	..	
+		93, 93, 93, 93, 93, 93, 93, 93, 93, 93, 93, 93, 93, 93, 93, 93, 93, 93, 93, 93,
+		//	..	..	..	..	..	..	..	..	..	..	..	..	' ' !	"	#	$	%	&	'	(	
+			93, 93, 93, 93, 93, 93, 93, 93, 93, 93, 93,	93, 94, 64, 87, 66, 67, 68, 70, 85, 72,
+			//	)	*	+	,	-	.	/	0	1	2	3	4	5	6	7	8	9	:	;	<
+				73,	71,	77,	88,	74,	91, 92, 52,	53,	54,	55,	56,	57,	58,	59,	60,	61,	86,	84,	89,
+				//	=	>	?	@	A	B	C	D	E	F	G	H	I	J	K	L	M	N	O	P
+					75,	90,	93,	65,	0,	1,	2,	3,	4,	5,	6,	7,	8,	9,	10,	11,	12,	13,	14,	15,
+					//	Q	R	S	T	U	V	W	X	Y	Z	[	\	]	^	_	`	a	b	c	d
+						16,	17,	18,	19,	20,	21,	22,	23,	24,	25,	80,	78,	81,	69,	76,	62,	26,	27,	28,	29,
+						//	e	f	g	h	i	j	k	l	m	n	o	p	q	r	s	t	u	v	w	x
+							30,	31,	32,	33,	34,	35,	36,	37,	38,	39,	40,	41,	42,	43,	44,	45,	46,	47,	48,	49,
+							//	y	z	{	|	}	~	..	..	..	..	..	..	..	..	..	..	..	..	..	..
+								50,	51,	82,	79,	83,	63,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,
+								//	..	..	..	..	..	..	..	..	..	..	..	..	..	..	..	..	..	..	..	..
+									93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,
+									//	..	..	..	..	..	..	..	..	..	..	«	..	..	..	..	..	..	..	..	..
+										93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	96,	93, 93,	93,	93,	93,	93,	93,	93,	93,
+										//	..	..	..	..	..	..	»	..	..	..	..	..	..	..	..	..	..	..	..	..
+											93,	93,	93,	93,	93,	93,	95,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,
+											//	..	..	..	..	..	..	..	..	..	..	..	..	..	..	..	..	..	..	..	..
+												93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,
+												//	..	..	..	..	..	..	..	..	..	..	..	..	..	..	..	..	..	..	..	..
+													93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,
+													//	..	F2	..	..	..	..	..	..	..	..	..	..	..	..	..	..	
+														93,	97,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93
+};
 
 INT __stdcall WinMain(_In_ HINSTANCE Instance, _In_opt_ HINSTANCE PreviousInstance, _In_ PSTR CommandLine, _In_ INT CmdShow)
 {
@@ -72,6 +101,12 @@ INT __stdcall WinMain(_In_ HINSTANCE Instance, _In_opt_ HINSTANCE PreviousInstan
 
 	if (CreateMainGameWindow(Instance) != ERROR_SUCCESS)
 	{
+		goto Exit;
+	}
+
+	if (Load32BppBitmapFromFile("Assets\\6x7Font.bmpx", &g6x7Font) != ERROR_SUCCESS)
+	{
+		MessageBoxA(NULL, "Load32BppBitmapFromFile failded!", "Error", MB_ICONEXCLAMATION | MB_OK);
 		goto Exit;
 	}
 
@@ -381,8 +416,42 @@ void RenderFrameGraphics(void)
 #endif
 	char DebugTextBuffer[64] = { 0 };
 
-	Load32BppBitmapOnScreen(&gPlayer.Sprite[gPlayer.CurrentArmor][gPlayer.Direction + gPlayer.Step], gPlayer.ScreenPosX, gPlayer.ScreenPosY);
 
+
+
+	//	Blit32BppBitmapToBuffer(&g6x7Font, 0, 7);
+	//	BlitStringToScreen("1234567890", &g6x7Font, 64, 64);
+
+	if (gPerformanceData.DisplayDebugInfo == TRUE)
+	{
+		sprintf_s(DebugTextBuffer, sizeof(DebugTextBuffer), "FPS RAW:  %.01f", gPerformanceData.RawFPSAverage);
+		BlitStringToScreen(DebugTextBuffer, &g6x7Font, 0, 0);
+
+		sprintf_s(DebugTextBuffer, sizeof(DebugTextBuffer), "FPS Cooked: %.01f", gPerformanceData.CookedFPSAverage);
+		BlitStringToScreen(DebugTextBuffer, &g6x7Font, 0, 8);
+
+
+		sprintf_s(DebugTextBuffer, sizeof(DebugTextBuffer), "Handles: %lu", gPerformanceData.HandleCount);
+		BlitStringToScreen(DebugTextBuffer, &g6x7Font, 0, 16);
+
+		sprintf_s(DebugTextBuffer, sizeof(DebugTextBuffer), "Memory: %lluKB", gPerformanceData.MemInfo.PrivateUsage / 1024);
+		BlitStringToScreen(DebugTextBuffer, &g6x7Font, 0, 24);
+
+		sprintf_s(DebugTextBuffer, sizeof(DebugTextBuffer), "CPU: %0.2f%%", gPerformanceData.CPUPercent);
+		BlitStringToScreen(DebugTextBuffer, &g6x7Font, 0, 32);
+
+		sprintf_s(DebugTextBuffer, sizeof(DebugTextBuffer), "ScreenPos: (%d, %d)", gPlayer.ScreenPosX, gPlayer.ScreenPosY);
+		BlitStringToScreen(DebugTextBuffer, &g6x7Font, 0, 40);
+
+		sprintf_s(DebugTextBuffer, sizeof(DebugTextBuffer), "Total Frames: %llu", gPerformanceData.TotalFramesRendered);
+		BlitStringToScreen(DebugTextBuffer, &g6x7Font, 0, 48);
+
+
+
+	}
+	Blit32BppBitmapToBuffer(&gPlayer.Sprite[gPlayer.CurrentArmor][gPlayer.Direction + gPlayer.Step], gPlayer.ScreenPosX, gPlayer.ScreenPosY);
+
+	//Blit32BppBitmapToBuffer(&g6x7Font, 0, 60);
 	HDC DeviceContext = GetDC(gGameWindow);
 
 	StretchDIBits(DeviceContext,
@@ -398,34 +467,6 @@ void RenderFrameGraphics(void)
 		&gBackBuffer.BitmapInfo,
 		DIB_RGB_COLORS,
 		SRCCOPY);
-
-	if (gPerformanceData.DisplayDebugInfo == TRUE)
-	{
-		SelectObject(DeviceContext, (HFONT)GetStockObject(ANSI_FIXED_FONT));
-		SetTextColor(DeviceContext, RGB(255, 0, 255));
-
-		sprintf_s(DebugTextBuffer, sizeof(DebugTextBuffer), "FPS RAW:		%.01f", gPerformanceData.RawFPSAverage);
-		TextOutA(DeviceContext, 0, 0, DebugTextBuffer, (int)strlen(DebugTextBuffer));
-
-		sprintf_s(DebugTextBuffer, sizeof(DebugTextBuffer), "FPS Cooked:	%.01f", gPerformanceData.CookedFPSAverage);
-		TextOutA(DeviceContext, 0, 13, DebugTextBuffer, (int)strlen(DebugTextBuffer));
-
-		sprintf_s(DebugTextBuffer, sizeof(DebugTextBuffer), "Handles:		%lu", gPerformanceData.HandleCount);
-		TextOutA(DeviceContext, 0, 26, DebugTextBuffer, (int)strlen(DebugTextBuffer));
-
-		sprintf_s(DebugTextBuffer, sizeof(DebugTextBuffer), "Memory:		%lluKB", gPerformanceData.MemInfo.PrivateUsage / 1024);
-		TextOutA(DeviceContext, 0, 39, DebugTextBuffer, (int)strlen(DebugTextBuffer));
-
-		sprintf_s(DebugTextBuffer, sizeof(DebugTextBuffer), "CPU:			%0.2f%%", gPerformanceData.CPUPercent);
-		TextOutA(DeviceContext, 0, 52, DebugTextBuffer, (int)strlen(DebugTextBuffer));
-
-		sprintf_s(DebugTextBuffer, sizeof(DebugTextBuffer), "Total Frames:	%llu", gPerformanceData.TotalFramesRendered);
-		TextOutA(DeviceContext, 0, 65, DebugTextBuffer, (int)strlen(DebugTextBuffer));
-
-		sprintf_s(DebugTextBuffer, sizeof(DebugTextBuffer), "ScreenPos:	(%d, %d) ", gPlayer.ScreenPosX, gPlayer.ScreenPosY);
-		TextOutA(DeviceContext, 0, 78, DebugTextBuffer, (int)strlen(DebugTextBuffer));
-
-	}
 
 	ReleaseDC(gGameWindow, DeviceContext);
 }
@@ -645,36 +686,36 @@ Exit:
 	return(Result);
 }
 
-void Load32BppBitmapOnScreen(_In_ GAMEBITMAP* GameBitmap, _In_ int16_t ScreenPosX, _In_ int16_t ScreenPosY)
+void Blit32BppBitmapToBuffer(_In_ GAMEBITMAP* GameBitmap, _In_ uint16_t x, _In_ uint16_t y)
 {
-	int32_t StartingScreenPixel = ((GAME_RES_WIDTH * GAME_RES_HEIGHT) - GAME_RES_WIDTH) - \
-		(GAME_RES_WIDTH * ScreenPosY) + ScreenPosX;
+	int32_t StartingScreenPixel = ((GAME_RES_WIDTH * GAME_RES_HEIGHT) - GAME_RES_WIDTH) - (GAME_RES_WIDTH * y) + x;
 
-	int32_t StartingBitmapPixel = (GameBitmap->BitmapInfo.bmiHeader.biHeight * GameBitmap->BitmapInfo.bmiHeader.biWidth) - \
-		GameBitmap->BitmapInfo.bmiHeader.biWidth;
+	int32_t StartingBitmapPixel = ((GameBitmap->BitmapInfo.bmiHeader.biWidth * GameBitmap->BitmapInfo.bmiHeader.biHeight) - \
+		GameBitmap->BitmapInfo.bmiHeader.biWidth);
+
+	int32_t MemoryOffset = 0;
+
+	int32_t BitmapOffset = 0;
 
 	PIXEL32 BitmapPixel = { 0 };
 
-	uint32_t ScreenOffset = 0;
-	uint32_t BitmapOffset = 0;
-
-
-	for (int16_t PixelY = 0; PixelY < GameBitmap->BitmapInfo.bmiHeader.biHeight; PixelY++)
+	for (int16_t YPixel = 0; YPixel < GameBitmap->BitmapInfo.bmiHeader.biHeight; YPixel++)
 	{
-		for (int16_t PixelX = 0; PixelX < GameBitmap->BitmapInfo.bmiHeader.biWidth; PixelX++)
+		for (int16_t XPixel = 0; XPixel < GameBitmap->BitmapInfo.bmiHeader.biWidth; XPixel++)
 		{
-			ScreenOffset = StartingScreenPixel + PixelX - (GAME_RES_WIDTH * PixelY);
-			BitmapOffset = StartingBitmapPixel + PixelX - (GameBitmap->BitmapInfo.bmiHeader.biWidth * PixelY);
+			MemoryOffset = StartingScreenPixel + XPixel - (GAME_RES_WIDTH * YPixel);
+
+			BitmapOffset = StartingBitmapPixel + XPixel - (GameBitmap->BitmapInfo.bmiHeader.biWidth * YPixel);
 
 			memcpy_s(&BitmapPixel, sizeof(PIXEL32), (PIXEL32*)GameBitmap->Memory + BitmapOffset, sizeof(PIXEL32));
 
 			if (BitmapPixel.Alpha == 255)
 			{
-				memcpy_s((PIXEL32*)gBackBuffer.Memory + ScreenOffset, sizeof(PIXEL32), &BitmapPixel, sizeof(PIXEL32));
+				memcpy_s((PIXEL32*)gBackBuffer.Memory + MemoryOffset, sizeof(PIXEL32), &BitmapPixel, sizeof(PIXEL32));
 			}
+
 		}
 	}
-
 }
 
 void UpdateHeroMovement(_Inout_ HERO* Hero, _In_ uint8_t Direction)
@@ -719,6 +760,63 @@ void UpdateHeroMovement(_Inout_ HERO* Hero, _In_ uint8_t Direction)
 		Hero->Direction = Direction;
 	}
 
+}
+
+void BlitStringToScreen(_In_ char* String, _In_ GAMEBITMAP* GameBitmap, _In_ uint16_t x, _In_ uint16_t y)
+{
+	uint32_t CharWidth = GameBitmap->BitmapInfo.bmiHeader.biWidth / FONT_SHEET_CHARACTERS_PER_ROW;
+	uint32_t CharHeight = GameBitmap->BitmapInfo.bmiHeader.biHeight;
+
+	uint32_t BytesPerCharacter = (CharWidth * CharHeight * (GameBitmap->BitmapInfo.bmiHeader.biBitCount / 8));
+	uint64_t StringLength = strlen(String);
+
+	GAMEBITMAP StringBitmap = { 0 };
+
+	StringBitmap.BitmapInfo.bmiHeader.biBitCount = GAME_BPP;
+	StringBitmap.BitmapInfo.bmiHeader.biHeight = CharHeight;
+	StringBitmap.BitmapInfo.bmiHeader.biWidth = CharWidth * (uint32_t)StringLength;
+	StringBitmap.BitmapInfo.bmiHeader.biPlanes = 1;
+	StringBitmap.BitmapInfo.bmiHeader.biCompression = BI_RGB;
+
+	StringBitmap.Memory = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, (uint64_t)BytesPerCharacter * (uint64_t)StringLength);
+
+	for (uint32_t Character = 0; Character < StringLength; Character++)
+	{
+		uint32_t StartingFontSheetByte = 0;
+		uint32_t FontSheetOffset = 0;
+		uint32_t StringBitmapOffset;
+		PIXEL32 FontSheetPixel = { 0 };
+		uint8_t SelectedCharacter = String[Character];
+
+		StartingFontSheetByte = (GameBitmap->BitmapInfo.bmiHeader.biWidth * GameBitmap->BitmapInfo.bmiHeader.biHeight) - GameBitmap->BitmapInfo.bmiHeader.biWidth + (CharWidth * charToPixelOffset[SelectedCharacter]);
+
+		for (uint32_t YPixel = 0; YPixel < CharHeight; YPixel++)
+		{
+			for (uint32_t XPixel = 0; XPixel < CharWidth; XPixel++)
+			{
+				FontSheetOffset = StartingFontSheetByte + XPixel - (GameBitmap->BitmapInfo.bmiHeader.biWidth * YPixel);
+
+				StringBitmapOffset = (Character * CharWidth) + ((StringBitmap.BitmapInfo.bmiHeader.biWidth * StringBitmap.BitmapInfo.bmiHeader.biHeight) - \
+					StringBitmap.BitmapInfo.bmiHeader.biWidth) + XPixel - (StringBitmap.BitmapInfo.bmiHeader.biWidth) * YPixel;
+
+				memcpy_s(&FontSheetPixel, sizeof(PIXEL32), (PIXEL32*)GameBitmap->Memory + FontSheetOffset, sizeof(PIXEL32));
+
+				FontSheetPixel.Red = 0xFF;
+				FontSheetPixel.Blue = 0x00;
+				FontSheetPixel.Green = 0x00;
+
+				memcpy_s((PIXEL32*)StringBitmap.Memory + StringBitmapOffset, sizeof(PIXEL32), &FontSheetPixel, sizeof(PIXEL32));
+			}
+		}
+
+	}
+
+	Blit32BppBitmapToBuffer(&StringBitmap, x, y);
+
+	if (StringBitmap.Memory)
+	{
+		HeapFree(GetProcessHeap(), 0, StringBitmap.Memory);
+	}
 }
 
 #ifdef SIMD
