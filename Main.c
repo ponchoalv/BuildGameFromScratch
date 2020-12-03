@@ -45,6 +45,7 @@ uint8_t charToPixelOffset[] = {
 													//	..	F2	..	..	..	..	..	..	..	..	..	..	..	..	..	..	
 														93,	97,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93
 };
+REGISTRYPARAMS gRegistryParams;
 
 INT __stdcall WinMain(_In_ HINSTANCE Instance, _In_opt_ HINSTANCE PreviousInstance, _In_ PSTR CommandLine, _In_ INT CmdShow)
 {
@@ -68,6 +69,12 @@ INT __stdcall WinMain(_In_ HINSTANCE Instance, _In_opt_ HINSTANCE PreviousInstan
 	int64_t PreviousKernelCPUTime = 0;
 
 	HANDLE ProcessHandle = GetCurrentProcess();
+
+
+	if (LoadRegistryParameters() != ERROR_SUCCESS)
+	{
+		goto Exit;
+	}
 
 	GetSystemInfo(&gPerformanceData.SystemInfo);
 
@@ -416,39 +423,33 @@ void RenderFrameGraphics(void)
 #endif
 	char DebugTextBuffer[64] = { 0 };
 
-
-
-
-	//	Blit32BppBitmapToBuffer(&g6x7Font, 0, 7);
-	//	BlitStringToScreen("1234567890", &g6x7Font, 64, 64);
-
 	if (gPerformanceData.DisplayDebugInfo == TRUE)
 	{
+		PIXEL32 Green = { 0x54, 0xF2, 0xFF, 0xff };
+
 		sprintf_s(DebugTextBuffer, sizeof(DebugTextBuffer), "FPS RAW:  %.01f", gPerformanceData.RawFPSAverage);
-		BlitStringToScreen(DebugTextBuffer, &g6x7Font, 0, 0);
+		BlitStringToScreen(DebugTextBuffer, &g6x7Font, Green, 0, 0);
 
 		sprintf_s(DebugTextBuffer, sizeof(DebugTextBuffer), "FPS Cooked: %.01f", gPerformanceData.CookedFPSAverage);
-		BlitStringToScreen(DebugTextBuffer, &g6x7Font, 0, 8);
+		BlitStringToScreen(DebugTextBuffer, &g6x7Font, Green, 0, 8);
 
 
 		sprintf_s(DebugTextBuffer, sizeof(DebugTextBuffer), "Handles: %lu", gPerformanceData.HandleCount);
-		BlitStringToScreen(DebugTextBuffer, &g6x7Font, 0, 16);
+		BlitStringToScreen(DebugTextBuffer, &g6x7Font, Green, 0, 16);
 
-		sprintf_s(DebugTextBuffer, sizeof(DebugTextBuffer), "Memory: %lluKB", gPerformanceData.MemInfo.PrivateUsage / 1024);
-		BlitStringToScreen(DebugTextBuffer, &g6x7Font, 0, 24);
+		sprintf_s(DebugTextBuffer, sizeof(DebugTextBuffer), "Memory: %lluKB", (uint64_t)gPerformanceData.MemInfo.PrivateUsage / 1024);
+		BlitStringToScreen(DebugTextBuffer, &g6x7Font, Green, 0, 24);
 
 		sprintf_s(DebugTextBuffer, sizeof(DebugTextBuffer), "CPU: %0.2f%%", gPerformanceData.CPUPercent);
-		BlitStringToScreen(DebugTextBuffer, &g6x7Font, 0, 32);
+		BlitStringToScreen(DebugTextBuffer, &g6x7Font, Green, 0, 32);
 
 		sprintf_s(DebugTextBuffer, sizeof(DebugTextBuffer), "ScreenPos: (%d, %d)", gPlayer.ScreenPosX, gPlayer.ScreenPosY);
-		BlitStringToScreen(DebugTextBuffer, &g6x7Font, 0, 40);
+		BlitStringToScreen(DebugTextBuffer, &g6x7Font, Green, 0, 40);
 
 		sprintf_s(DebugTextBuffer, sizeof(DebugTextBuffer), "Total Frames: %llu", gPerformanceData.TotalFramesRendered);
-		BlitStringToScreen(DebugTextBuffer, &g6x7Font, 0, 48);
-
-
-
+		BlitStringToScreen(DebugTextBuffer, &g6x7Font, Green, 0, 48);
 	}
+
 	Blit32BppBitmapToBuffer(&gPlayer.Sprite[gPlayer.CurrentArmor][gPlayer.Direction + gPlayer.Step], gPlayer.ScreenPosX, gPlayer.ScreenPosY);
 
 	//Blit32BppBitmapToBuffer(&g6x7Font, 0, 60);
@@ -762,13 +763,13 @@ void UpdateHeroMovement(_Inout_ HERO* Hero, _In_ uint8_t Direction)
 
 }
 
-void BlitStringToScreen(_In_ char* String, _In_ GAMEBITMAP* GameBitmap, _In_ uint16_t x, _In_ uint16_t y)
+void BlitStringToScreen(_In_ char* String, _In_ GAMEBITMAP* FontSheet, _In_ PIXEL32 Color, _In_ uint16_t x, _In_ uint16_t y)
 {
-	uint32_t CharWidth = GameBitmap->BitmapInfo.bmiHeader.biWidth / FONT_SHEET_CHARACTERS_PER_ROW;
-	uint32_t CharHeight = GameBitmap->BitmapInfo.bmiHeader.biHeight;
+	uint32_t CharWidth = FontSheet->BitmapInfo.bmiHeader.biWidth / FONT_SHEET_CHARACTERS_PER_ROW;
+	uint32_t CharHeight = FontSheet->BitmapInfo.bmiHeader.biHeight;
 
-	uint32_t BytesPerCharacter = (CharWidth * CharHeight * (GameBitmap->BitmapInfo.bmiHeader.biBitCount / 8));
-	uint64_t StringLength = strlen(String);
+	uint32_t BytesPerCharacter = (CharWidth * CharHeight * (FontSheet->BitmapInfo.bmiHeader.biBitCount / 8));
+	size_t StringLength = strlen(String);
 
 	GAMEBITMAP StringBitmap = { 0 };
 
@@ -778,7 +779,7 @@ void BlitStringToScreen(_In_ char* String, _In_ GAMEBITMAP* GameBitmap, _In_ uin
 	StringBitmap.BitmapInfo.bmiHeader.biPlanes = 1;
 	StringBitmap.BitmapInfo.bmiHeader.biCompression = BI_RGB;
 
-	StringBitmap.Memory = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, (uint64_t)BytesPerCharacter * (uint64_t)StringLength);
+	StringBitmap.Memory = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, (size_t)(BytesPerCharacter * StringLength));
 
 	for (uint32_t Character = 0; Character < StringLength; Character++)
 	{
@@ -788,24 +789,24 @@ void BlitStringToScreen(_In_ char* String, _In_ GAMEBITMAP* GameBitmap, _In_ uin
 		PIXEL32 FontSheetPixel = { 0 };
 		uint8_t SelectedCharacter = String[Character];
 
-		StartingFontSheetByte = (GameBitmap->BitmapInfo.bmiHeader.biWidth * GameBitmap->BitmapInfo.bmiHeader.biHeight) - GameBitmap->BitmapInfo.bmiHeader.biWidth + (CharWidth * charToPixelOffset[SelectedCharacter]);
+		StartingFontSheetByte = (FontSheet->BitmapInfo.bmiHeader.biWidth * FontSheet->BitmapInfo.bmiHeader.biHeight) - FontSheet->BitmapInfo.bmiHeader.biWidth + (CharWidth * charToPixelOffset[SelectedCharacter]);
 
 		for (uint32_t YPixel = 0; YPixel < CharHeight; YPixel++)
 		{
 			for (uint32_t XPixel = 0; XPixel < CharWidth; XPixel++)
 			{
-				FontSheetOffset = StartingFontSheetByte + XPixel - (GameBitmap->BitmapInfo.bmiHeader.biWidth * YPixel);
+				FontSheetOffset = StartingFontSheetByte + XPixel - (FontSheet->BitmapInfo.bmiHeader.biWidth * YPixel);
 
 				StringBitmapOffset = (Character * CharWidth) + ((StringBitmap.BitmapInfo.bmiHeader.biWidth * StringBitmap.BitmapInfo.bmiHeader.biHeight) - \
 					StringBitmap.BitmapInfo.bmiHeader.biWidth) + XPixel - (StringBitmap.BitmapInfo.bmiHeader.biWidth) * YPixel;
 
-				memcpy_s(&FontSheetPixel, sizeof(PIXEL32), (PIXEL32*)GameBitmap->Memory + FontSheetOffset, sizeof(PIXEL32));
+				memcpy_s(&FontSheetPixel, sizeof(PIXEL32), (PIXEL32*)FontSheet->Memory + FontSheetOffset, sizeof(PIXEL32));
 
-				FontSheetPixel.Red = 0xFF;
-				FontSheetPixel.Blue = 0x00;
-				FontSheetPixel.Green = 0x00;
+				if (FontSheetPixel.Alpha == 255) {
+					memcpy_s((PIXEL32*)StringBitmap.Memory + StringBitmapOffset, sizeof(PIXEL32), &Color, sizeof(PIXEL32));
+				}
 
-				memcpy_s((PIXEL32*)StringBitmap.Memory + StringBitmapOffset, sizeof(PIXEL32), &FontSheetPixel, sizeof(PIXEL32));
+
 			}
 		}
 
@@ -816,6 +817,145 @@ void BlitStringToScreen(_In_ char* String, _In_ GAMEBITMAP* GameBitmap, _In_ uin
 	if (StringBitmap.Memory)
 	{
 		HeapFree(GetProcessHeap(), 0, StringBitmap.Memory);
+	}
+}
+
+DWORD LoadRegistryParameters(void)
+{
+	DWORD Result = ERROR_SUCCESS;
+
+	HKEY RegKey = NULL;
+	DWORD RegDisposition = 0;
+	DWORD RegBytesRead = sizeof(DWORD);
+
+	Result = RegCreateKeyExA(HKEY_CURRENT_USER, "SOFTWARE\\" GAME_NAME, 0, NULL, 0, KEY_ALL_ACCESS, NULL, &RegKey, &RegDisposition);
+
+	if (Result != ERROR_SUCCESS)
+	{
+		LogMessageA(LOG_LEVEL_ERROR, "[%s] RegCreateKey failed with error code 0x%08lx!", __FUNCTION__, Result);
+		goto Exit;
+	}
+
+	if (RegDisposition == REG_CREATED_NEW_KEY)
+	{
+		LogMessageA(LOG_LEVEL_INFO, "[%s] Registry key did not exists; created new key HKCU\\SOFTWARE\\%s", __FUNCTION__, GAME_NAME);
+	}
+	else
+	{
+		LogMessageA(LOG_LEVEL_INFO, "[%s] Openened exisiting registry key HKCU\\SOFTWARE\\%s", __FUNCTION__, GAME_NAME);
+
+	}
+	
+	Result = RegGetValueA(RegKey, NULL, "LogLevel", RRF_RT_DWORD, NULL, (BYTE*)&gRegistryParams.LogLevel, &RegBytesRead);
+
+	if (Result != ERROR_SUCCESS)
+	{
+		if (Result == ERROR_FILE_NOT_FOUND)
+		{
+			Result = ERROR_SUCCESS;
+			LogMessageA(LOG_LEVEL_INFO, "[%s] Registry value 'LogLevel' not found. Using default of 0. (LOG_LEVEL_NONE)", __FUNCTION__);
+			gRegistryParams.LogLevel = LOG_LEVEL_NONE;
+		}
+		else
+		{
+			LogMessageA(LOG_LEVEL_ERROR, "[%s] Failed to read the 'LogLevel' registry value! Error 0x%08lx!", __FUNCTION__, Result);
+			
+			goto Exit;
+		}
+
+	}
+
+	LogMessageA(LOG_LEVEL_INFO, "[%s] LogLevel is %d.", __FUNCTION__, gRegistryParams.LogLevel);
+
+Exit:
+	if (RegKey)
+	{
+		RegCloseKey(RegKey);
+	}
+
+	return(Result);
+}
+
+void LogMessageA(_In_ DWORD LogLevel, _In_ char* Message, _In_ ...)
+{
+	size_t MessageLength = strlen(Message);
+	SYSTEMTIME Time = { 0 };
+	HANDLE LogFileHandle = INVALID_HANDLE_VALUE;
+	DWORD EndOfFile = 0;
+	DWORD NumberOfBytesWritten = 0;
+	char DateTimeString[96] = { 0 };
+	char SeverityString[8] = { 0 };
+	char FormattedString[4096] = { 0 };
+	int Error = 0;
+
+	if (gRegistryParams.LogLevel < LogLevel)
+	{
+		return;
+	}
+
+
+	if (MessageLength < 1 || MessageLength >= 4096)
+	{
+
+		return;
+	}
+
+	switch (LogLevel)
+	{
+	case LOG_LEVEL_NONE:
+	{
+		return;
+	}
+	case LOG_LEVEL_INFO:
+	{
+		strcpy_s(SeverityString, sizeof(SeverityString), "[INFO] ");
+		break;
+	}
+	case LOG_LEVEL_WARN:
+	{
+		strcpy_s(SeverityString, sizeof(SeverityString), "[WARN] ");
+		break;
+	}
+	case LOG_LEVEL_ERROR:
+	{
+		strcpy_s(SeverityString, sizeof(SeverityString), "[ERROR] ");
+		break;
+	}
+	case LOG_LEVEL_DEBUG:
+	{
+		strcpy_s(SeverityString, sizeof(SeverityString), "[DEBUG] ");
+		break;
+	}
+	default:
+	{
+
+	}
+	}
+
+	GetLocalTime(&Time);
+	va_list ArgPointer = NULL;
+	va_start(ArgPointer, Message);
+
+	_vsnprintf_s(FormattedString, sizeof(FormattedString), _TRUNCATE, Message, ArgPointer);
+	va_end(ArgPointer);
+
+	Error = _snprintf_s(DateTimeString, sizeof(DateTimeString), _TRUNCATE, "\r\n[%02u/%02u/%u %02u:%02u:%02u.%03u]",
+		Time.wYear, Time.wDay, Time.wMonth, Time.wHour, Time.wMinute, Time.wSecond, Time.wMilliseconds);
+
+	if ((LogFileHandle = CreateFileA(LOG_FILE_NAME, FILE_APPEND_DATA, FILE_SHARE_READ, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL)) == INVALID_HANDLE_VALUE)
+	{
+		return;
+	}
+
+	EndOfFile = SetFilePointer(LogFileHandle, 0, NULL, FILE_END);	
+
+	WriteFile(LogFileHandle, DateTimeString, (DWORD)strlen(DateTimeString), &NumberOfBytesWritten, NULL);
+	WriteFile(LogFileHandle, SeverityString, (DWORD)strlen(SeverityString), &NumberOfBytesWritten, NULL);
+	WriteFile(LogFileHandle, FormattedString, (DWORD)strlen(FormattedString), &NumberOfBytesWritten, NULL);
+
+	if (LogFileHandle != INVALID_HANDLE_VALUE)
+	{
+		CloseHandle(LogFileHandle);
 	}
 }
 

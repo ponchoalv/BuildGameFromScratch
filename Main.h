@@ -7,7 +7,9 @@
 #define GAME_DRAWING_AREA_MEMORY_SIZE (GAME_RES_WIDTH * GAME_RES_HEIGHT * (GAME_BPP / 8))
 #define CALCULATE_AVG_FPS_EVERY_X_FRAMES 120
 #define TARGET_MICROSECONDS_PER_FRAME 16667ULL
+
 #define SIMD
+
 #define SUIT_0 0
 #define SUIT_1 1
 #define SUIT_2 2
@@ -23,10 +25,15 @@
 #define FACING_UPWARD_0		9
 #define FACING_UPWARD_1		10
 #define FACING_UPWARD_2		11
+
 #define FONT_SHEET_CHARACTERS_PER_ROW 98
 
-
-
+#define LOG_LEVEL_NONE	0
+#define LOG_LEVEL_INFO	1
+#define LOG_LEVEL_WARN	2
+#define LOG_LEVEL_ERROR	3
+#define LOG_LEVEL_DEBUG	4
+#define LOG_FILE_NAME	GAME_NAME ".log"
 
 #pragma warning(disable: 4820) // Disable warning about structure padding.
 #pragma warning(disable: 5045) // Disable warning about Spectre/Meltdown CPU vulnerability.
@@ -93,6 +100,11 @@ typedef struct HERO
 	int32_t MP;
 } HERO;
 
+typedef struct REGISTRYPARAMS
+{
+	DWORD LogLevel;
+} REGISTRYPARAMS;
+
 DWORD CreateMainGameWindow(_In_ HINSTANCE Instance);
 
 BOOL GameIsAlreadyRunning(void);
@@ -109,7 +121,11 @@ void Blit32BppBitmapToBuffer(_In_ GAMEBITMAP* GameBitmap, _In_ uint16_t x, _In_ 
 
 void UpdateHeroMovement(_Inout_ HERO* Hero, _In_ uint8_t Direction);
 
-void BlitStringToScreen(_In_ char* String, _In_ GAMEBITMAP* GameBitmap, _In_ uint16_t x, _In_ uint16_t y);
+void BlitStringToScreen(_In_ char* String, _In_ GAMEBITMAP* FontSheet, _In_ PIXEL32 Color, _In_ uint16_t x, _In_ uint16_t y);
+
+DWORD LoadRegistryParameters(void);
+
+void LogMessageA(_In_ DWORD LogLevel, _In_ char* Message, _In_ ...);
 
 #ifdef SIMD
 void ClearScreen(_In_ __m128i* Color);
