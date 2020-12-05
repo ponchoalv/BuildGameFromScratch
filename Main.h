@@ -1,5 +1,16 @@
 #pragma once
 
+#ifdef _DEBUG
+	#define ASSERT(Expression, Message, ...)							\
+				if(!(Expression))										\
+				{														\
+					LogMessageA(LL_ERROR, Message, ##__VA_ARGS__ );		\
+					goto Exit;											\
+				}
+#else
+	#define ASSERT(Expresion, Message, ...);
+#endif
+
 #define GAME_NAME		"GAME_B"
 #define GAME_RES_WIDTH	384
 #define GAME_RES_HEIGHT 240
@@ -27,12 +38,6 @@
 #define FACING_UPWARD_2		11
 
 #define FONT_SHEET_CHARACTERS_PER_ROW 98
-
-#define LOG_LEVEL_NONE	0
-#define LOG_LEVEL_INFO	1
-#define LOG_LEVEL_WARN	2
-#define LOG_LEVEL_ERROR	3
-#define LOG_LEVEL_DEBUG	4
 #define LOG_FILE_NAME	GAME_NAME ".log"
 
 #pragma warning(disable: 4820) // Disable warning about structure padding.
@@ -41,6 +46,21 @@
 
 typedef LONG(NTAPI* _NtQueryTimerResolution) (OUT PULONG MinimumResolution, OUT PULONG MaximumResolution, OUT PULONG CurrentResolution);
 _NtQueryTimerResolution NtQueryTimerResolution;
+
+typedef enum DIRECTION {
+	DIR_DOWN = 0,
+	DIR_LEFT = 3,
+	DIR_RIGHT = 6,
+	DIR_UP = 9
+} DIRECTION;
+
+typedef enum LOGLEVEL {
+	LL_NONE = 0,
+	LL_ERROR = 1,
+	LL_INFO = 2,
+	LL_WARN = 3,
+	LL_DEBUG = 4
+} LOGLEVEL;
 
 typedef struct GAMEBITMAP
 {
@@ -73,7 +93,7 @@ typedef struct GAMEPERFDATA
 
 	PROCESS_MEMORY_COUNTERS_EX MemInfo;
 	DWORD HandleCount;
-	
+
 	SYSTEM_INFO SystemInfo;
 	int64_t PreviousSystemTime;
 	int64_t CurrentSystemTime;
@@ -91,7 +111,7 @@ typedef struct HERO
 	int16_t ScreenPosY;
 
 	uint8_t AccumulatedMovements;
-	uint8_t Direction;
+	DIRECTION Direction;
 	uint8_t CurrentArmor;
 	uint8_t Step;
 
@@ -119,13 +139,13 @@ DWORD InitializeHero(void);
 
 void Blit32BppBitmapToBuffer(_In_ GAMEBITMAP* GameBitmap, _In_ uint16_t x, _In_ uint16_t y);
 
-void UpdateHeroMovement(_Inout_ HERO* Hero, _In_ uint8_t Direction);
+void UpdateHeroMovement(_Inout_ HERO* Hero, _In_ DIRECTION Direction);
 
 void BlitStringToScreen(_In_ char* String, _In_ GAMEBITMAP* FontSheet, _In_ PIXEL32 Color, _In_ uint16_t x, _In_ uint16_t y);
 
 DWORD LoadRegistryParameters(void);
 
-void LogMessageA(_In_ DWORD LogLevel, _In_ char* Message, _In_ ...);
+void LogMessageA(_In_ LOGLEVEL LogLevel, _In_ char* Message, _In_ ...);
 
 #ifdef SIMD
 void ClearScreen(_In_ __m128i* Color);

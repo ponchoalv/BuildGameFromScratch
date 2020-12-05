@@ -76,6 +76,11 @@ INT __stdcall WinMain(_In_ HINSTANCE Instance, _In_opt_ HINSTANCE PreviousInstan
 		goto Exit;
 	}
 
+	LogMessageA(LL_INFO, "[%s] Probando INFO", __FUNCTION__);
+	LogMessageA(LL_ERROR, "[%s] Probando ERROR", __FUNCTION__);
+	LogMessageA(LL_WARN, "[%s] Probando WARN", __FUNCTION__);
+	LogMessageA(LL_DEBUG, "[%s] Probando DEBUG", __FUNCTION__);
+
 	GetSystemInfo(&gPerformanceData.SystemInfo);
 
 	if (GameIsAlreadyRunning() == TRUE)
@@ -381,22 +386,22 @@ __forceinline void ProcessPlayerInput(void)
 
 	if (LeftKeyIsDown)
 	{
-		UpdateHeroMovement(&gPlayer, FACING_LEFT_0);
+		UpdateHeroMovement(&gPlayer, DIR_LEFT);
 	}
 
 	if (RightKeyIsDown)
 	{
-		UpdateHeroMovement(&gPlayer, FACING_RIGHT_0);
+		UpdateHeroMovement(&gPlayer, DIR_RIGHT);
 	}
 
 	if (UpKeyIsDown && !RightOrLeftIsDown)
 	{
-		UpdateHeroMovement(&gPlayer, FACING_UPWARD_0);
+		UpdateHeroMovement(&gPlayer, DIR_UP);
 	}
 
 	if (DownKeyIsDown && !RightOrLeftIsDown)
 	{
-		UpdateHeroMovement(&gPlayer, FACING_DOWN_0);
+		UpdateHeroMovement(&gPlayer, DIR_DOWN);
 	}
 
 	if (gPlayer.AccumulatedMovements % 17) {
@@ -719,7 +724,7 @@ void Blit32BppBitmapToBuffer(_In_ GAMEBITMAP* GameBitmap, _In_ uint16_t x, _In_ 
 	}
 }
 
-void UpdateHeroMovement(_Inout_ HERO* Hero, _In_ uint8_t Direction)
+void UpdateHeroMovement(_Inout_ HERO* Hero, _In_ DIRECTION Direction)
 {
 	if (Hero->AccumulatedMovements % 8 == 0) {
 		Hero->Step = ++Hero->Step % 3;
@@ -730,25 +735,25 @@ void UpdateHeroMovement(_Inout_ HERO* Hero, _In_ uint8_t Direction)
 
 		switch (Hero->Direction)
 		{
-		case FACING_DOWN_0:
+			case DIR_DOWN:
 		{
 			if (Hero->ScreenPosY < GAME_RES_HEIGHT - 16)
 				Hero->ScreenPosY += 1;
 			break;
 		}
-		case FACING_UPWARD_0:
+		case DIR_UP:
 		{
 			if (Hero->ScreenPosY > 0)
 				Hero->ScreenPosY -= 1;
 			break;
 		}
-		case FACING_LEFT_0:
+		case DIR_LEFT:
 		{
 			if (Hero->ScreenPosX > 0)
 				Hero->ScreenPosX -= 1;
 			break;
 		}
-		case FACING_RIGHT_0:
+		case DIR_RIGHT:
 		{
 			if (Hero->ScreenPosX < GAME_RES_WIDTH - 16)
 				Hero->ScreenPosX += 1;
@@ -783,19 +788,19 @@ void BlitStringToScreen(_In_ char* String, _In_ GAMEBITMAP* FontSheet, _In_ PIXE
 
 	for (uint32_t Character = 0; Character < StringLength; Character++)
 	{
-		uint32_t StartingFontSheetByte = 0;
+		uint32_t StartingFontSheetPixel = 0;
 		uint32_t FontSheetOffset = 0;
 		uint32_t StringBitmapOffset;
 		PIXEL32 FontSheetPixel = { 0 };
 		uint8_t SelectedCharacter = String[Character];
 
-		StartingFontSheetByte = (FontSheet->BitmapInfo.bmiHeader.biWidth * FontSheet->BitmapInfo.bmiHeader.biHeight) - FontSheet->BitmapInfo.bmiHeader.biWidth + (CharWidth * charToPixelOffset[SelectedCharacter]);
+		StartingFontSheetPixel = (FontSheet->BitmapInfo.bmiHeader.biWidth * FontSheet->BitmapInfo.bmiHeader.biHeight) - FontSheet->BitmapInfo.bmiHeader.biWidth + (CharWidth * charToPixelOffset[SelectedCharacter]);
 
 		for (uint32_t YPixel = 0; YPixel < CharHeight; YPixel++)
 		{
 			for (uint32_t XPixel = 0; XPixel < CharWidth; XPixel++)
 			{
-				FontSheetOffset = StartingFontSheetByte + XPixel - (FontSheet->BitmapInfo.bmiHeader.biWidth * YPixel);
+				FontSheetOffset = StartingFontSheetPixel + XPixel - (FontSheet->BitmapInfo.bmiHeader.biWidth * YPixel);
 
 				StringBitmapOffset = (Character * CharWidth) + ((StringBitmap.BitmapInfo.bmiHeader.biWidth * StringBitmap.BitmapInfo.bmiHeader.biHeight) - \
 					StringBitmap.BitmapInfo.bmiHeader.biWidth) + XPixel - (StringBitmap.BitmapInfo.bmiHeader.biWidth) * YPixel;
@@ -832,17 +837,17 @@ DWORD LoadRegistryParameters(void)
 
 	if (Result != ERROR_SUCCESS)
 	{
-		LogMessageA(LOG_LEVEL_ERROR, "[%s] RegCreateKey failed with error code 0x%08lx!", __FUNCTION__, Result);
+		LogMessageA(LL_ERROR, "[%s] RegCreateKey failed with error code 0x%08lx!", __FUNCTION__, Result);
 		goto Exit;
 	}
 
 	if (RegDisposition == REG_CREATED_NEW_KEY)
 	{
-		LogMessageA(LOG_LEVEL_INFO, "[%s] Registry key did not exists; created new key HKCU\\SOFTWARE\\%s", __FUNCTION__, GAME_NAME);
+		LogMessageA(LL_INFO, "[%s] Registry key did not exists; created new key HKCU\\SOFTWARE\\%s", __FUNCTION__, GAME_NAME);
 	}
 	else
 	{
-		LogMessageA(LOG_LEVEL_INFO, "[%s] Openened exisiting registry key HKCU\\SOFTWARE\\%s", __FUNCTION__, GAME_NAME);
+		LogMessageA(LL_INFO, "[%s] Openened exisiting registry key HKCU\\SOFTWARE\\%s", __FUNCTION__, GAME_NAME);
 
 	}
 	
@@ -853,19 +858,19 @@ DWORD LoadRegistryParameters(void)
 		if (Result == ERROR_FILE_NOT_FOUND)
 		{
 			Result = ERROR_SUCCESS;
-			LogMessageA(LOG_LEVEL_INFO, "[%s] Registry value 'LogLevel' not found. Using default of 0. (LOG_LEVEL_NONE)", __FUNCTION__);
-			gRegistryParams.LogLevel = LOG_LEVEL_NONE;
+			LogMessageA(LL_INFO, "[%s] Registry value 'LogLevel' not found. Using default of 0. (LOG_LEVEL_NONE)", __FUNCTION__);
+			gRegistryParams.LogLevel = LL_NONE;
 		}
 		else
 		{
-			LogMessageA(LOG_LEVEL_ERROR, "[%s] Failed to read the 'LogLevel' registry value! Error 0x%08lx!", __FUNCTION__, Result);
+			LogMessageA(LL_ERROR, "[%s] Failed to read the 'LogLevel' registry value! Error 0x%08lx!", __FUNCTION__, Result);
 			
 			goto Exit;
 		}
 
 	}
 
-	LogMessageA(LOG_LEVEL_INFO, "[%s] LogLevel is %d.", __FUNCTION__, gRegistryParams.LogLevel);
+	LogMessageA(LL_INFO, "[%s] LogLevel is %d.", __FUNCTION__, gRegistryParams.LogLevel);
 
 Exit:
 	if (RegKey)
@@ -876,7 +881,7 @@ Exit:
 	return(Result);
 }
 
-void LogMessageA(_In_ DWORD LogLevel, _In_ char* Message, _In_ ...)
+void LogMessageA(_In_ LOGLEVEL LogLevel, _In_ char* Message, _In_ ...)
 {
 	size_t MessageLength = strlen(Message);
 	SYSTEMTIME Time = { 0 };
@@ -884,11 +889,11 @@ void LogMessageA(_In_ DWORD LogLevel, _In_ char* Message, _In_ ...)
 	DWORD EndOfFile = 0;
 	DWORD NumberOfBytesWritten = 0;
 	char DateTimeString[96] = { 0 };
-	char SeverityString[8] = { 0 };
+	char SeverityString[9] = { 0 };
 	char FormattedString[4096] = { 0 };
 	int Error = 0;
 
-	if (gRegistryParams.LogLevel < LogLevel)
+	if (gRegistryParams.LogLevel < (DWORD)LogLevel)
 	{
 		return;
 	}
@@ -902,33 +907,33 @@ void LogMessageA(_In_ DWORD LogLevel, _In_ char* Message, _In_ ...)
 
 	switch (LogLevel)
 	{
-	case LOG_LEVEL_NONE:
+	case LL_NONE:
 	{
 		return;
 	}
-	case LOG_LEVEL_INFO:
+	case LL_INFO:
 	{
 		strcpy_s(SeverityString, sizeof(SeverityString), "[INFO] ");
 		break;
 	}
-	case LOG_LEVEL_WARN:
+	case LL_WARN:
 	{
 		strcpy_s(SeverityString, sizeof(SeverityString), "[WARN] ");
 		break;
 	}
-	case LOG_LEVEL_ERROR:
+	case LL_ERROR:
 	{
 		strcpy_s(SeverityString, sizeof(SeverityString), "[ERROR] ");
 		break;
 	}
-	case LOG_LEVEL_DEBUG:
+	case LL_DEBUG:
 	{
 		strcpy_s(SeverityString, sizeof(SeverityString), "[DEBUG] ");
 		break;
 	}
 	default:
 	{
-
+		ASSERT(0, "Invalid Log level Value");
 	}
 	}
 
@@ -952,7 +957,7 @@ void LogMessageA(_In_ DWORD LogLevel, _In_ char* Message, _In_ ...)
 	WriteFile(LogFileHandle, DateTimeString, (DWORD)strlen(DateTimeString), &NumberOfBytesWritten, NULL);
 	WriteFile(LogFileHandle, SeverityString, (DWORD)strlen(SeverityString), &NumberOfBytesWritten, NULL);
 	WriteFile(LogFileHandle, FormattedString, (DWORD)strlen(FormattedString), &NumberOfBytesWritten, NULL);
-
+Exit:
 	if (LogFileHandle != INVALID_HANDLE_VALUE)
 	{
 		CloseHandle(LogFileHandle);
