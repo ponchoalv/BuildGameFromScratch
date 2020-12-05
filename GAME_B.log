@@ -2,3 +2,133 @@
 [2020/03/12 20:03:15.025][INFO] [WinMain] Mensaje hola mundo
 [2020/03/12 20:05:15.186][INFO] [LoadRegistryParameters] LogLevel is 4.
 [2020/03/12 20:05:15.189][INFO] [WinMain] Mensaje hola mundo
+[2020/05/12 10:06:14.870][INFO] [LoadRegistryParameters] LogLevel is 4.
+[2020/05/12 10:11:41.445][INFO] [LoadRegistryParameters] LogLevel is 4.
+[2020/05/12 10:11:41.457][INFO] [WinMain] Probando INFO
+[2020/05/12 10:12:10.000][INFO] [LoadRegistryParameters] LogLevel is 4.
+[2020/05/12 10:12:10.004][INFO] [WinMain] Probando INFO
+[2020/05/12 10:13:00.914][INFO] [LoadRegistryParameters] LogLevel is 4.
+[2020/05/12 10:13:00.917][INFO] [WinMain] Probando INFO
+[2020/05/12 10:16:02.579][INFO] [LoadRegistryParameters] LogLevel is 4.
+[2020/05/12 10:16:02.590][INFO] [WinMain] Probando INFO
+[2020/05/12 10:17:47.516][INFO] [LoadRegistryParameters] LogLevel is 4.
+[2020/05/12 10:17:47.521][INFO] [WinMain] Probando INFO
+[2020/05/12 10:18:07.342][ERROR] [WinMain] Probando ERROR
+[2020/05/12 10:18:19.110][WARN] [WinMain] Probando WARN
+[2020/05/12 10:18:19.113][DEBUG] [WinMain] Probando DEBUG
+[2020/05/12 10:18:50.119][INFO] [LoadRegistryParameters] LogLevel is 3.
+[2020/05/12 10:18:50.123][INFO] [WinMain] Probando INFO
+[2020/05/12 10:19:04.563][ERROR] [WinMain] Probando ERROR
+[2020/05/12 10:19:04.568][WARN] [WinMain] Probando WARN
+[2020/05/12 10:19:15.583][INFO] [LoadRegistryParameters] LogLevel is 2.
+[2020/05/12 10:19:15.587][INFO] [WinMain] Probando INFO
+[2020/05/12 10:19:15.591][ERROR] [WinMain] Probando ERROR
+[2020/05/12 10:19:29.246][ERROR] [WinMain] Probando ERROR
+[2020/05/12 10:20:13.852][ERROR] [WinMain] Probando ERROR
+[2020/05/12 10:27:31.810][INFO] [LoadRegistryParameters] LogLevel is 4.
+[2020/05/12 10:27:31.813][INFO] [WinMain] Probando INFO
+[2020/05/12 10:27:31.817][ERROR] [WinMain] Probando ERROR
+[2020/05/12 10:27:31.820][WARN] [WinMain] Probando WARN
+[2020/05/12 10:27:31.823][DEBUG] [WinMain] Probando DEBUG
+[2020/05/12 10:31:26.694][INFO] [LoadRegistryParameters] LogLevel is 4.
+[2020/05/12 10:31:26.698][INFO] [WinMain] Probando INFO
+[2020/05/12 10:31:26.701][ERROR] [WinMain] Probando ERROR
+[2020/05/12 10:31:26.704][WARN] [WinMain] Probando WARN
+[2020/05/12 10:31:26.706][DEBUG] [WinMain] Probando DEBUG
+[2020/05/12 10:53:02.150][INFO] [LoadRegistryParameters] LogLevel is 4.
+[2020/05/12 10:53:02.153][INFO] [WinMain] Probando INFO
+[2020/05/12 10:53:02.156][ERROR] [WinMain] Probando ERROR
+[2020/05/12 10:53:02.160][WARN] [WinMain] Probando WARN
+[2020/05/12 10:53:02.163][DEBUG] [WinMain] Probando DEBUG
+[2020/05/12 10:55:58.192][INFO] [LoadRegistryParameters] LogLevel is 4.
+[2020/05/12 10:55:58.203][INFO] [WinMain] Probando INFO
+[2020/05/12 10:55:58.207][ERROR] [WinMain] Probando ERROR
+[2020/05/12 10:55:58.210][WARN] [WinMain] Probando WARN
+[2020/05/12 10:55:58.213][DEBUG] [WinMain] Probando DEBUG
+[2020/05/12 10:56:21.411][INFO] [LoadRegistryParameters] LogLevel is 4.
+[2020/05/12 10:56:21.414][INFO] [WinMain] Probando INFO
+[2020/05/12 10:56:21.418][ERROR] [WinMain] Probando ERROR
+[2020/05/12 10:56:21.421][WARN] [WinMain] Probando WARN
+[2020/05/12 10:56:21.425][DEBUG] [WinMain] Probando DEBUG
+[2020/05/12 10:56:55.192][INFO] [LoadRegistryParameters] LogLevel is 4.
+[2020/05/12 10:56:55.204][INFO] [WinMain] Probando INFO
+[2020/05/12 10:56:55.207][ERROR] [WinMain] Probando ERROR
+[2020/05/12 10:56:55.209][WARN] [WinMain] Probando WARN
+[2020/05/12 10:56:55.212][DEBUG] [WinMain] Probando DEBUG
+[2020/05/12 10:57:14.080][INFO] [LoadRegistryParameters] LogLevel is 4.
+[2020/05/12 10:57:14.092][INFO] [WinMain] Probando INFO
+[2020/05/12 10:57:14.095][ERROR] [WinMain] Probando ERROR
+[2020/05/12 10:57:14.098][WARN] [WinMain] Probando WARN
+[2020/05/12 10:57:14.101][DEBUG] [WinMain] Probando DEBUG
+[2020/05/12 10:57:43.733][INFO] [LoadRegistryParameters] LogLevel is 4.
+[2020/05/12 10:57:43.739][INFO] [WinMain] Probando INFO
+[2020/05/12 10:57:43.742][ERROR] [WinMain] Probando ERROR
+[2020/05/12 10:57:43.745][WARN] [WinMain] Probando WARN
+[2020/05/12 10:57:43.748][DEBUG] [WinMain] Probando DEBUG
+[2020/05/12 10:58:08.501][INFO] [LoadRegistryParameters] LogLevel is 4.
+[2020/05/12 10:58:08.513][INFO] [WinMain] Probando INFO
+[2020/05/12 10:58:08.516][ERROR] [WinMain] Probando ERROR
+[2020/05/12 10:58:08.518][WARN] [WinMain] Probando WARN
+[2020/05/12 10:58:08.521][DEBUG] [WinMain] Probando DEBUG
+[2020/05/12 10:58:29.572][INFO] [LoadRegistryParameters] LogLevel is 4.
+[2020/05/12 10:58:29.584][INFO] [WinMain] Probando INFO
+[2020/05/12 10:58:29.587][ERROR] [WinMain] Probando ERROR
+[2020/05/12 10:58:29.591][WARN] [WinMain] Probando WARN
+[2020/05/12 10:58:29.594][DEBUG] [WinMain] Probando DEBUG
+[2020/05/12 10:59:09.721][INFO] [LoadRegistryParameters] Openened exisiting registry key HKCU\SOFTWARE\GAME_B
+[2020/05/12 10:59:09.725][INFO] [LoadRegistryParameters] LogLevel is 4.
+[2020/05/12 10:59:09.728][INFO] [WinMain] Probando INFO
+[2020/05/12 10:59:09.732][ERROR] [WinMain] Probando ERROR
+[2020/05/12 10:59:09.736][WARN] [WinMain] Probando WARN
+[2020/05/12 10:59:09.740][DEBUG] [WinMain] Probando DEBUG
+[2020/05/12 10:59:13.463][ERROR] Invalid Log level Value
+[2020/05/12 10:59:13.467][WinMain] This will fail
+[2020/05/12 11:00:34.829][INFO] [LoadRegistryParameters] Openened exisiting registry key HKCU\SOFTWARE\GAME_B
+[2020/05/12 11:00:34.832][INFO] [LoadRegistryParameters] LogLevel is 4.
+[2020/05/12 11:00:34.835][INFO] [WinMain] Probando INFO
+[2020/05/12 11:00:34.838][ERROR] [WinMain] Probando ERROR
+[2020/05/12 11:00:34.841][WARN] [WinMain] Probando WARN
+[2020/05/12 11:00:34.844][DEBUG] [WinMain] Probando DEBUG
+[2020/05/12 11:00:39.215][ERROR] Invalid Log level Value
+[2020/05/12 11:00:52.166][INFO] [LoadRegistryParameters] Openened exisiting registry key HKCU\SOFTWARE\GAME_B
+[2020/05/12 11:00:52.169][INFO] [LoadRegistryParameters] LogLevel is 4.
+[2020/05/12 11:00:52.173][INFO] [WinMain] Probando INFO
+[2020/05/12 11:00:52.177][ERROR] [WinMain] Probando ERROR
+[2020/05/12 11:00:52.181][WARN] [WinMain] Probando WARN
+[2020/05/12 11:00:52.185][DEBUG] [WinMain] Probando DEBUG
+[2020/05/12 11:00:52.188][ERROR] Invalid Log level Value
+[2020/05/12 11:01:34.961][INFO] [LoadRegistryParameters] Openened exisiting registry key HKCU\SOFTWARE\GAME_B
+[2020/05/12 11:01:34.965][INFO] [LoadRegistryParameters] LogLevel is 4.
+[2020/05/12 11:01:34.968][INFO] [WinMain] Probando INFO
+[2020/05/12 11:01:34.972][ERROR] [WinMain] Probando ERROR
+[2020/05/12 11:01:34.975][WARN] [WinMain] Probando WARN
+[2020/05/12 11:01:34.978][DEBUG] [WinMain] Probando DEBUG
+[2020/05/12 11:01:52.703][ERROR] Invalid Log level Value
+[2020/05/12 11:02:35.171][INFO] [LoadRegistryParameters] Openened exisiting registry key HKCU\SOFTWARE\GAME_B
+[2020/05/12 11:02:35.176][INFO] [LoadRegistryParameters] LogLevel is 4.
+[2020/05/12 11:02:35.180][INFO] [WinMain] Probando INFO
+[2020/05/12 11:02:35.185][ERROR] [WinMain] Probando ERROR
+[2020/05/12 11:02:35.188][WARN] [WinMain] Probando WARN
+[2020/05/12 11:02:35.192][DEBUG] [WinMain] Probando DEBUG
+[2020/05/12 11:02:46.322][ERROR] Invalid Log level Value
+[2020/05/12 11:02:49.474][INFO] [LoadRegistryParameters] Openened exisiting registry key HKCU\SOFTWARE\GAME_B
+[2020/05/12 11:02:49.477][INFO] [LoadRegistryParameters] LogLevel is 4.
+[2020/05/12 11:02:49.480][INFO] [WinMain] Probando INFO
+[2020/05/12 11:02:49.483][ERROR] [WinMain] Probando ERROR
+[2020/05/12 11:02:49.486][WARN] [WinMain] Probando WARN
+[2020/05/12 11:02:49.489][DEBUG] [WinMain] Probando DEBUG
+[2020/05/12 11:02:49.492][ERROR] Invalid Log level Value
+[2020/05/12 11:02:53.169][INFO] [LoadRegistryParameters] Openened exisiting registry key HKCU\SOFTWARE\GAME_B
+[2020/05/12 11:02:53.173][INFO] [LoadRegistryParameters] LogLevel is 4.
+[2020/05/12 11:02:53.176][INFO] [WinMain] Probando INFO
+[2020/05/12 11:02:53.181][ERROR] [WinMain] Probando ERROR
+[2020/05/12 11:02:53.185][WARN] [WinMain] Probando WARN
+[2020/05/12 11:02:53.189][DEBUG] [WinMain] Probando DEBUG
+[2020/05/12 11:02:53.193][ERROR] Invalid Log level Value
+[2020/05/12 11:02:55.097][INFO] [LoadRegistryParameters] Openened exisiting registry key HKCU\SOFTWARE\GAME_B
+[2020/05/12 11:02:55.101][INFO] [LoadRegistryParameters] LogLevel is 4.
+[2020/05/12 11:02:55.104][INFO] [WinMain] Probando INFO
+[2020/05/12 11:02:55.106][ERROR] [WinMain] Probando ERROR
+[2020/05/12 11:02:55.108][WARN] [WinMain] Probando WARN
+[2020/05/12 11:02:55.111][DEBUG] [WinMain] Probando DEBUG
+[2020/05/12 11:02:55.114][ERROR] Invalid Log level Value
