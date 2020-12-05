@@ -23,6 +23,9 @@
     <ClInclude Include="Main.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Menu.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="Assets\Hero_Suit0_Down_Standing.bmpx">
@@ -61,10 +64,6 @@
     <Image Include="Assets\Hero_Suit0_Up_Walk2.bmpx">
       <Filter>Resource Files</Filter>
     </Image>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Assets\6x7Font.bmpx">
-      <Filter>Resource Files</Filter>
-    </None>
+    <Image Include="Assets\6x7Font.bmpx" />
   </ItemGroup>
 </Project>

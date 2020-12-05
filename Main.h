@@ -8,7 +8,7 @@
 					goto Exit;											\
 				}
 #else
-	#define ASSERT(Expresion, Message, ...);
+	#define ASSERT(Expresion, Message, ...)
 #endif
 
 #define GAME_NAME		"GAME_B"
@@ -146,6 +146,8 @@ void BlitStringToScreen(_In_ char* String, _In_ GAMEBITMAP* FontSheet, _In_ PIXE
 DWORD LoadRegistryParameters(void);
 
 void LogMessageA(_In_ LOGLEVEL LogLevel, _In_ char* Message, _In_ ...);
+
+void FindFirstConnectedGamepad(void);
 
 #ifdef SIMD
 void ClearScreen(_In_ __m128i* Color);
