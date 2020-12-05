@@ -5,10 +5,16 @@
 #include <emmintrin.h>
 #pragma warning(pop)
 
+#include <Xinput.h>
 #include <stdint.h>
+
+
 #include "Main.h"
+#include "Menu.h"
 
 #pragma comment(lib, "Winmm.lib")
+#pragma comment(lib, "Xinput.lib")
+
 
 HWND gGameWindow;
 BOOL gGameIsRunning;
@@ -17,7 +23,7 @@ GAMEBITMAP g6x7Font;
 GAMEPERFDATA gPerformanceData;
 HERO gPlayer;
 BOOL gWindowHasForcus;
-uint8_t charToPixelOffset[] = {
+uint8_t charToPixelOffset[256] = {
 	//	..	..	..	..	..	..	..	..	..	..	..	..	..	..	..	..	..	..	..	..	
 		93, 93, 93, 93, 93, 93, 93, 93, 93, 93, 93, 93, 93, 93, 93, 93, 93, 93, 93, 93,
 		//	..	..	..	..	..	..	..	..	..	..	..	..	' ' !	"	#	$	%	&	'	(	
@@ -42,10 +48,14 @@ uint8_t charToPixelOffset[] = {
 												93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,
 												//	..	..	..	..	..	..	..	..	..	..	..	..	..	..	..	..	..	..	..	..
 													93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,
-													//	..	F2	..	..	..	..	..	..	..	..	..	..	..	..	..	..	
-														93,	97,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93
+													//	..	F2	..	..	..	..	..	..	..	..	..	..	..	..	..		
+														93,	97,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93,	93
 };
 REGISTRYPARAMS gRegistryParams;
+
+XINPUT_STATE gGamepadState;
+int8_t gGamepadID = -1;
+
 
 INT __stdcall WinMain(_In_ HINSTANCE Instance, _In_opt_ HINSTANCE PreviousInstance, _In_ PSTR CommandLine, _In_ INT CmdShow)
 {
@@ -185,6 +195,8 @@ INT __stdcall WinMain(_In_ HINSTANCE Instance, _In_opt_ HINSTANCE PreviousInstan
 		{
 			GetSystemTimeAsFileTime((FILETIME*)&gPerformanceData.CurrentSystemTime);
 
+			FindFirstConnectedGamepad();
+
 			GetProcessTimes(ProcessHandle,
 				&ProcessCreationTime,
 				&ProcessExitTime,
@@ -223,35 +235,36 @@ LRESULT CALLBACK MainWindowProc(_In_ HWND WindowHandler, _In_ UINT Message, _In_
 
 	switch (Message)
 	{
-	case WM_CLOSE:
-	{
-		gGameIsRunning = FALSE;
-		PostQuitMessage(0);
-
-		break;
-	}
-
-	case WM_ACTIVATE:
-	{
-		if (WParam == 0)
+		case WM_CLOSE:
 		{
-			// our window has lost focus
-			gWindowHasForcus = FALSE;
-		}
-		else {
-			// Our window has gained focus
-			ShowCursor(FALSE);
+			gGameIsRunning = FALSE;
+			PostQuitMessage(0);
 
-			gWindowHasForcus = TRUE;
+			break;
 		}
 
-		break;
-	}
+		case WM_ACTIVATE:
+		{
+			if (WParam == 0)
+			{
+				// our window has lost focus
+				gWindowHasForcus = FALSE;
+			}
+			else
+			{
+				// Our window has gained focus
+				ShowCursor(FALSE);
 
-	default:
-	{
-		Result = DefWindowProcA(WindowHandler, Message, WParam, LParam);
-	}
+				gWindowHasForcus = TRUE;
+			}
+
+			break;
+		}
+
+		default:
+		{
+			Result = DefWindowProcA(WindowHandler, Message, WParam, LParam);
+		}
 
 	}
 	return(Result);
@@ -374,6 +387,17 @@ __forceinline void ProcessPlayerInput(void)
 	static int16_t LeftKeyWasDown;
 	static int16_t RightKeyWasDown;
 
+	if (gGamepadID > -1)
+	{
+		if (XInputGetState(gGamepadID, &gGamepadState) == ERROR_SUCCESS)
+		{
+			EscapeKeyIsDown |= gGamepadState.Gamepad.wButtons & XINPUT_GAMEPAD_BACK;
+			LeftKeyIsDown |= gGamepadState.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_LEFT;
+			RightKeyIsDown |= gGamepadState.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_RIGHT;
+			UpKeyIsDown |= gGamepadState.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_UP;
+			DownKeyIsDown |= gGamepadState.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_DOWN;
+		}
+	}
 
 	if (EscapeKeyIsDown) {
 		SendMessageA(gGameWindow, WM_CLOSE, 0, 0);
@@ -729,6 +753,41 @@ void UpdateHeroMovement(_Inout_ HERO* Hero, _In_ DIRECTION Direction)
 	if (Hero->AccumulatedMovements % 8 == 0) {
 		Hero->Step = ++Hero->Step % 3;
 	}
+	//switch (Hero->AccumulatedMovements)
+	//{
+	//	case 1:
+	//	{
+	//		Hero->Step = 0;
+	//		break;
+	//	}
+
+	//	case 5:
+	//	{
+	//		Hero->Step = 1;
+	//		break;
+	//	}
+
+	//	case 9:
+	//	{
+	//		Hero->Step = 0;
+	//		break;
+	//	}
+
+	//	case 13:
+	//	{
+	//		Hero->Step = 2;
+	//		break;
+	//	}
+
+	//	case 16:
+	//	{
+	//		Hero->Step = 0;
+	//		break;
+	//	}
+
+	//	default:
+	//		break;
+	//}
 
 	if (Hero->AccumulatedMovements % 17) {
 		Hero->AccumulatedMovements++;
@@ -736,28 +795,29 @@ void UpdateHeroMovement(_Inout_ HERO* Hero, _In_ DIRECTION Direction)
 		switch (Hero->Direction)
 		{
 			case DIR_DOWN:
-		{
-			if (Hero->ScreenPosY < GAME_RES_HEIGHT - 16)
-				Hero->ScreenPosY += 1;
-			break;
-		}
-		case DIR_UP:
-		{
-			if (Hero->ScreenPosY > 0)
-				Hero->ScreenPosY -= 1;
-			break;
-		}
-		case DIR_LEFT:
-		{
-			if (Hero->ScreenPosX > 0)
-				Hero->ScreenPosX -= 1;
-			break;
-		}
-		case DIR_RIGHT:
-		{
-			if (Hero->ScreenPosX < GAME_RES_WIDTH - 16)
-				Hero->ScreenPosX += 1;
-		}
+			{
+				if (Hero->ScreenPosY < GAME_RES_HEIGHT - 16)
+					Hero->ScreenPosY += 1;
+				break;
+			}
+			case DIR_UP:
+			{
+				if (Hero->ScreenPosY > 0)
+					Hero->ScreenPosY -= 1;
+				break;
+			}
+			case DIR_LEFT:
+			{
+				if (Hero->ScreenPosX > 0)
+					Hero->ScreenPosX -= 1;
+				break;
+			}
+			case DIR_RIGHT:
+			{
+				if (Hero->ScreenPosX < GAME_RES_WIDTH - 16)
+					Hero->ScreenPosX += 1;
+				break;
+			}
 		}
 	}
 	else
@@ -850,7 +910,7 @@ DWORD LoadRegistryParameters(void)
 		LogMessageA(LL_INFO, "[%s] Openened exisiting registry key HKCU\\SOFTWARE\\%s", __FUNCTION__, GAME_NAME);
 
 	}
-	
+
 	Result = RegGetValueA(RegKey, NULL, "LogLevel", RRF_RT_DWORD, NULL, (BYTE*)&gRegistryParams.LogLevel, &RegBytesRead);
 
 	if (Result != ERROR_SUCCESS)
@@ -864,7 +924,7 @@ DWORD LoadRegistryParameters(void)
 		else
 		{
 			LogMessageA(LL_ERROR, "[%s] Failed to read the 'LogLevel' registry value! Error 0x%08lx!", __FUNCTION__, Result);
-			
+
 			goto Exit;
 		}
 
@@ -901,40 +961,40 @@ void LogMessageA(_In_ LOGLEVEL LogLevel, _In_ char* Message, _In_ ...)
 
 	if (MessageLength < 1 || MessageLength >= 4096)
 	{
-
+		ASSERT(FALSE, "[%s][%s][%s]The length of the message is to short or to long", __FILE__, __FUNCTION__, __LINE__);
 		return;
 	}
 
 	switch (LogLevel)
 	{
-	case LL_NONE:
-	{
-		return;
-	}
-	case LL_INFO:
-	{
-		strcpy_s(SeverityString, sizeof(SeverityString), "[INFO] ");
-		break;
-	}
-	case LL_WARN:
-	{
-		strcpy_s(SeverityString, sizeof(SeverityString), "[WARN] ");
-		break;
-	}
-	case LL_ERROR:
-	{
-		strcpy_s(SeverityString, sizeof(SeverityString), "[ERROR] ");
-		break;
-	}
-	case LL_DEBUG:
-	{
-		strcpy_s(SeverityString, sizeof(SeverityString), "[DEBUG] ");
-		break;
-	}
-	default:
-	{
-		ASSERT(0, "Invalid Log level Value");
-	}
+		case LL_NONE:
+		{
+			return;
+		}
+		case LL_INFO:
+		{
+			strcpy_s(SeverityString, sizeof(SeverityString), "[INFO] ");
+			break;
+		}
+		case LL_WARN:
+		{
+			strcpy_s(SeverityString, sizeof(SeverityString), "[WARN] ");
+			break;
+		}
+		case LL_ERROR:
+		{
+			strcpy_s(SeverityString, sizeof(SeverityString), "[ERROR] ");
+			break;
+		}
+		case LL_DEBUG:
+		{
+			strcpy_s(SeverityString, sizeof(SeverityString), "[DEBUG] ");
+			break;
+		}
+		default:
+		{
+			ASSERT(FALSE, "Invalid Log level value.");
+		}
 	}
 
 	GetLocalTime(&Time);
@@ -952,7 +1012,7 @@ void LogMessageA(_In_ LOGLEVEL LogLevel, _In_ char* Message, _In_ ...)
 		return;
 	}
 
-	EndOfFile = SetFilePointer(LogFileHandle, 0, NULL, FILE_END);	
+	EndOfFile = SetFilePointer(LogFileHandle, 0, NULL, FILE_END);
 
 	WriteFile(LogFileHandle, DateTimeString, (DWORD)strlen(DateTimeString), &NumberOfBytesWritten, NULL);
 	WriteFile(LogFileHandle, SeverityString, (DWORD)strlen(SeverityString), &NumberOfBytesWritten, NULL);
@@ -962,6 +1022,37 @@ Exit:
 	{
 		CloseHandle(LogFileHandle);
 	}
+}
+
+void FindFirstConnectedGamepad(void)
+{
+	gGamepadID = -1;
+
+	for (int8_t GamepadIndex = 0; GamepadIndex < XUSER_MAX_COUNT && gGamepadID == -1; GamepadIndex++)
+	{
+		XINPUT_STATE State = { 0 };
+
+		if (XInputGetState(GamepadIndex, &State) == ERROR_SUCCESS)
+		{
+			gGamepadID = GamepadIndex;
+		}
+	}
+}
+
+void MenuItem_TitleScreen_Resume(void)
+{
+}
+
+void MenuItem_TitleScreen_StartNew(void)
+{
+}
+
+void MenuItem_TitleScreen_Options(void)
+{
+}
+
+void MenuItem_TitleScreen_Exit(void)
+{
 }
 
 #ifdef SIMD
