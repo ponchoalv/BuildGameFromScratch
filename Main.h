@@ -1,14 +1,29 @@
 #pragma once
 
+#define AVX
+
+#ifdef AVX2
+#include <immintrin.h>
+#endif
+
+#ifdef AVX
+#include <immintrin.h>
+#endif
+
+#ifdef SIMD
+#include <emmintrin.h>
+#endif
+
+
 #ifdef _DEBUG
-	#define ASSERT(Expression, Message, ...)							\
+#define ASSERT(Expression, Message, ...)							\
 				if(!(Expression))										\
 				{														\
 					LogMessageA(LL_ERROR, Message, ##__VA_ARGS__ );		\
 					goto Exit;											\
 				}
 #else
-	#define ASSERT(Expresion, Message, ...)
+#define ASSERT(Expresion, Message, ...)
 #endif
 
 #define GAME_NAME		"GAME_B"
@@ -19,7 +34,6 @@
 #define CALCULATE_AVG_FPS_EVERY_X_FRAMES 120
 #define TARGET_MICROSECONDS_PER_FRAME 16667ULL
 
-#define SIMD
 
 #define SUIT_0 0
 #define SUIT_1 1
@@ -54,6 +68,23 @@ typedef enum DIRECTION {
 	DIR_UP = 9
 } DIRECTION;
 
+typedef struct GAMEINPUT {
+	int16_t EscapeKeyIsDown;
+	int16_t DebugKeyIsDown;
+	int16_t LeftKeyIsDown;
+	int16_t RightKeyIsDown;
+	int16_t UpKeyIsDown;
+	int16_t DownKeyIsDown;
+	int16_t EnterKeyIsDown;
+
+	int16_t DebugKeyWasDown;
+	int16_t LeftKeyWasDown;
+	int16_t RightKeyWasDown;
+	int16_t UpKeyWasDown;
+	int16_t DownKeyWasDown;
+	int16_t EnterKeyWasDown;
+} GAMEINPUT;
+
 typedef enum LOGLEVEL {
 	LL_NONE = 0,
 	LL_ERROR = 1,
@@ -61,6 +92,16 @@ typedef enum LOGLEVEL {
 	LL_WARN = 3,
 	LL_DEBUG = 4
 } LOGLEVEL;
+
+typedef enum GAMESTATE
+{
+	GAMESTATE_OPENINGSPLASHSCREEN,
+	GAMESTATE_TITLESCREEN,
+	GAMESTATE_OVERWORLD,
+	GAMESTATE_BATTLE,
+	GAMESTATE_OPTIONS,
+	GAMESTATE_EXITYESNOSCREEN
+} GAMESTATE;
 
 typedef struct GAMEBITMAP
 {
@@ -110,7 +151,9 @@ typedef struct HERO
 	int16_t ScreenPosX;
 	int16_t ScreenPosY;
 
-	uint8_t AccumulatedMovements;
+	uint8_t Speed;
+
+	uint8_t PendingMovements;
 	DIRECTION Direction;
 	uint8_t CurrentArmor;
 	uint8_t Step;
@@ -141,7 +184,7 @@ void Blit32BppBitmapToBuffer(_In_ GAMEBITMAP* GameBitmap, _In_ uint16_t x, _In_ 
 
 void UpdateHeroMovement(_Inout_ HERO* Hero, _In_ DIRECTION Direction);
 
-void BlitStringToScreen(_In_ char* String, _In_ GAMEBITMAP* FontSheet, _In_ PIXEL32 Color, _In_ uint16_t x, _In_ uint16_t y);
+void BlitStringToScreen(_In_ char* String, _In_ GAMEBITMAP* FontSheet, _In_ PIXEL32* Color, _In_ uint16_t x, _In_ uint16_t y);
 
 DWORD LoadRegistryParameters(void);
 
@@ -149,7 +192,21 @@ void LogMessageA(_In_ LOGLEVEL LogLevel, _In_ char* Message, _In_ ...);
 
 void FindFirstConnectedGamepad(void);
 
-#ifdef SIMD
+void ShowDebugInformation(void);
+
+void DrawOpeningSplashScreen(void);
+
+void DrawTittleScreen(void);
+
+void PPI_TitleScreen(void);
+void PPI_OpeningSplashScreen(void);
+void PPI_Overworld(void);
+
+#ifdef AVX2
+void ClearScreen(_In_ __m512i* Color);
+#elif defined AVX
+void ClearScreen(_In_ __m256i* Color);
+#elif defined SIMD
 void ClearScreen(_In_ __m128i* Color);
 #else
 void ClearScreen(_In_ PIXEL32* Color);
