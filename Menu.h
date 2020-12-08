@@ -21,6 +21,7 @@ void MenuItem_TitleScreen_StartNew(void);
 void MenuItem_TitleScreen_Options(void);
 void MenuItem_TitleScreen_Exit(void);
 
+void DrawMenu(_In_ MENU* Menu, _In_ PIXEL32* Color);
 
 // Title screen
 
@@ -34,6 +35,6 @@ MENUITEM gMI_Exit = { "Exit", (GAME_RES_WIDTH / 2) - ((5 * 6) / 2), 160, MenuIte
 
 MENUITEM* gMI_TitleScreenItem[] = { &gMI_ResumeGame, &gMI_StartNewGame, &gMI_Options, &gMI_Exit };
 
-MENU gMenu_TitleScreen = { "Title Screen Menu", 0, _countof(gMI_TitleScreenItem),  gMI_TitleScreenItem };
+MENU gMenu_TitleScreen = { GAME_NAME, 0, _countof(gMI_TitleScreenItem),  gMI_TitleScreenItem };
 
 ///

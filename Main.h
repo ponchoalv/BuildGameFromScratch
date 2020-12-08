@@ -16,7 +16,7 @@
 
 
 #ifdef _DEBUG
-#define ASSERT(Expression, Message, ...)							\
+#define ASSERT(Expression, Message, ...)								\
 				if(!(Expression))										\
 				{														\
 					LogMessageA(LL_ERROR, Message, ##__VA_ARGS__ );		\
@@ -27,12 +27,14 @@
 #endif
 
 #define GAME_NAME		"GAME_B"
+#define GAME_VERSION	"0.22"
 #define GAME_RES_WIDTH	384
 #define GAME_RES_HEIGHT 240
 #define GAME_BPP		32
 #define GAME_DRAWING_AREA_MEMORY_SIZE (GAME_RES_WIDTH * GAME_RES_HEIGHT * (GAME_BPP / 8))
 #define CALCULATE_AVG_FPS_EVERY_X_FRAMES 120
 #define TARGET_MICROSECONDS_PER_FRAME 16667ULL
+#define NUMBER_OF_SFX_SOURCE_VOICES 4
 
 
 #define SUIT_0 0
@@ -61,14 +63,16 @@
 typedef LONG(NTAPI* _NtQueryTimerResolution) (OUT PULONG MinimumResolution, OUT PULONG MaximumResolution, OUT PULONG CurrentResolution);
 _NtQueryTimerResolution NtQueryTimerResolution;
 
-typedef enum DIRECTION {
+typedef enum DIRECTION
+{
 	DIR_DOWN = 0,
 	DIR_LEFT = 3,
 	DIR_RIGHT = 6,
 	DIR_UP = 9
 } DIRECTION;
 
-typedef struct GAMEINPUT {
+typedef struct GAMEINPUT
+{
 	int16_t EscapeKeyIsDown;
 	int16_t DebugKeyIsDown;
 	int16_t LeftKeyIsDown;
@@ -85,7 +89,8 @@ typedef struct GAMEINPUT {
 	int16_t EnterKeyWasDown;
 } GAMEINPUT;
 
-typedef enum LOGLEVEL {
+typedef enum LOGLEVEL
+{
 	LL_NONE = 0,
 	LL_ERROR = 1,
 	LL_INFO = 2,
@@ -196,17 +201,17 @@ void ShowDebugInformation(void);
 
 void DrawOpeningSplashScreen(void);
 
-void DrawTittleScreen(void);
-
 void PPI_TitleScreen(void);
 void PPI_OpeningSplashScreen(void);
 void PPI_Overworld(void);
+
+HRESULT InitializeSoundEngine(void);
 
 #ifdef AVX2
 void ClearScreen(_In_ __m512i* Color);
 #elif defined AVX
 void ClearScreen(_In_ __m256i* Color);
-#elif defined SIMD
+#elif defined SSE2
 void ClearScreen(_In_ __m128i* Color);
 #else
 void ClearScreen(_In_ PIXEL32* Color);
