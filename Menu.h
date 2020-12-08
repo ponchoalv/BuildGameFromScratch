@@ -16,6 +16,8 @@ typedef struct MENU
 	MENUITEM** Items;
 } MENU;
 
+void PPI_Menu(_In_ MENU* Menu);
+
 void MenuItem_TitleScreen_Resume(void);
 void MenuItem_TitleScreen_StartNew(void);
 void MenuItem_TitleScreen_Options(void);
@@ -33,8 +35,23 @@ MENUITEM gMI_Options = { "Options", (GAME_RES_WIDTH / 2) - ((8 * 6) / 2), 140, M
 
 MENUITEM gMI_Exit = { "Exit", (GAME_RES_WIDTH / 2) - ((5 * 6) / 2), 160, MenuItem_TitleScreen_Exit };
 
-MENUITEM* gMI_TitleScreenItem[] = { &gMI_ResumeGame, &gMI_StartNewGame, &gMI_Options, &gMI_Exit };
+MENUITEM* gMI_TitleScreenItem[] = {&gMI_StartNewGame, &gMI_Options, &gMI_Exit };
+
+MENUITEM* gMI_TitleScreenItemWithResume[] = { &gMI_ResumeGame, &gMI_StartNewGame, &gMI_Options, &gMI_Exit };
 
 MENU gMenu_TitleScreen = { GAME_NAME, 0, _countof(gMI_TitleScreenItem),  gMI_TitleScreenItem };
 
 ///
+
+
+
+/// Exit Yes or No Screen
+void MenuItem_ExitYesNo_Yes(void);
+void MenuItem_ExitYesNo_No(void);
+
+MENUITEM gMI_ExitYesNo_Yes = { "Yes", (GAME_RES_WIDTH / 2) - ((3 * 6) / 2), 100, MenuItem_ExitYesNo_Yes };
+MENUITEM gMI_ExitYesNo_No = { "No", (GAME_RES_WIDTH / 2) - ((2 * 6) / 2), 115, MenuItem_ExitYesNo_No };
+
+MENUITEM* gMI_ExitYesNoItem[] = { &gMI_ExitYesNo_Yes, &gMI_ExitYesNo_No };
+
+MENU gMenu_ExitYesNoScreen = { "Are you sure you want to exit?", 1, _countof(gMI_ExitYesNoItem), gMI_ExitYesNoItem };

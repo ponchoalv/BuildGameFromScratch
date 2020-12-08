@@ -55,7 +55,11 @@ REGISTRYPARAMS gRegistryParams;
 XINPUT_STATE gGamepadState;
 int8_t gGamepadID = -1;
 
-GAMESTATE gGameState = GAMESTATE_TITLESCREEN;
+GAMESTATE gCurrentGameState = GAMESTATE_TITLESCREEN;
+GAMESTATE gPreviousGameState;
+GAMESTATE gDesiredGameState;
+BOOL gGameIsInProgress;     // Whether the player has started or loaded a game.
+
 GAMEINPUT gGameInput = { 0 };
 
 IXAudio2* gXAudio;
@@ -65,7 +69,9 @@ IXAudio2SourceVoice* gXAudioMusicSourceVoice;
 uint8_t gSFXSourceVoiceSelector;
 float gSFXVolume = 0.5f;
 float gMusicVolume = 0.5f;
+
 GAMESOUND gMenuMoveSound;
+GAMESOUND gMenuReturnSound;
 
 INT __stdcall WinMain(_In_ HINSTANCE Instance, _In_opt_ HINSTANCE PreviousInstance, _In_ PSTR CommandLine, _In_ INT CmdShow)
 {
@@ -146,6 +152,12 @@ INT __stdcall WinMain(_In_ HINSTANCE Instance, _In_opt_ HINSTANCE PreviousInstan
 	}
 
 	if (FAILED(LoadWavFromFile("Assets\\MenuSelect.wav", &gMenuMoveSound)))
+	{
+		MessageBoxA(NULL, "Initialize gMenuMoveSound failded!", "Error", MB_ICONEXCLAMATION | MB_OK);
+		goto Exit;
+	}
+
+	if (FAILED(LoadWavFromFile("Assets\\MenuReturn.wav", &gMenuReturnSound)))
 	{
 		MessageBoxA(NULL, "Initialize gMenuMoveSound failded!", "Error", MB_ICONEXCLAMATION | MB_OK);
 		goto Exit;
@@ -425,7 +437,15 @@ __forceinline void ProcessPlayerInput(void)
 		gPerformanceData.DisplayDebugInfo = !gPerformanceData.DisplayDebugInfo;
 	}
 
-	switch (gGameState)
+	if (gGameInput.EscapeKeyIsDown && !gGameInput.EscapeKeyWasDown)
+	{
+		gDesiredGameState = gPreviousGameState;
+		gPreviousGameState = gCurrentGameState;
+		gCurrentGameState = gDesiredGameState;
+		PlayGameSound(&gMenuReturnSound);
+	}
+
+	switch (gCurrentGameState)
 	{
 
 		case GAMESTATE_OPENINGSPLASHSCREEN:
@@ -437,7 +457,7 @@ __forceinline void ProcessPlayerInput(void)
 
 		case GAMESTATE_TITLESCREEN:
 		{
-			PPI_TitleScreen();
+			PPI_Menu(&gMenu_TitleScreen);
 
 			break;
 		}
@@ -449,12 +469,30 @@ __forceinline void ProcessPlayerInput(void)
 			break;
 		}
 
+		case GAMESTATE_EXITYESNOSCREEN:
+		{
+			PPI_Menu(&gMenu_ExitYesNoScreen);
+
+			break;
+		}
+
+		case GAMESTATE_BATTLE:
+		{
+			break;
+		}
+
+		case GAMESTATE_OPTIONS:
+		{
+			break;
+		}
+
 		default:
 		{
 			ASSERT(FALSE, "Unknown game state!");
 		}
 	}
 
+	gGameInput.EscapeKeyWasDown = gGameInput.EscapeKeyIsDown;
 	gGameInput.DebugKeyWasDown = gGameInput.DebugKeyIsDown;
 	gGameInput.LeftKeyWasDown = gGameInput.LeftKeyIsDown;
 	gGameInput.RightKeyWasDown = gGameInput.RightKeyIsDown;
@@ -469,7 +507,7 @@ Exit:
 void RenderFrameGraphics(void)
 {
 
-	switch (gGameState)
+	switch (gCurrentGameState)
 	{
 
 		case  GAMESTATE_OVERWORLD:
@@ -526,9 +564,34 @@ void RenderFrameGraphics(void)
 		case GAMESTATE_TITLESCREEN:
 		{
 			PIXEL32 White = { 0xFF, 0xFF, 0xFF, 0xFF };
+
+			if (gGameIsInProgress == TRUE)
+			{
+				//  Add Resume option if the game is in progress
+				gMenu_TitleScreen.Items = gMI_TitleScreenItemWithResume;
+				gMenu_TitleScreen.ItemCount = _countof(gMI_TitleScreenItemWithResume);
+			}
+
 			DrawMenu(&gMenu_TitleScreen, &White);
 			break;
 		}
+		case GAMESTATE_EXITYESNOSCREEN:
+		{
+			PIXEL32 Red = { 0x00, 0x00, 0xFF, 0xFF };
+			DrawMenu(&gMenu_ExitYesNoScreen, &Red);
+			break;
+		}
+
+		case GAMESTATE_BATTLE:
+		{
+			break;
+		}
+
+		case GAMESTATE_OPTIONS:
+		{
+			break;
+		}
+
 		default:
 		{
 			ASSERT(FALSE, "Gamestate not implemented!");
@@ -1176,7 +1239,8 @@ void DrawMenu(_In_ MENU* Menu, _In_ PIXEL32* Color)
 
 void MenuItem_TitleScreen_Resume(void)
 {
-	gGameState = GAMESTATE_OVERWORLD;
+	gPreviousGameState = gCurrentGameState;
+	gCurrentGameState = GAMESTATE_OVERWORLD;
 }
 
 void MenuItem_TitleScreen_StartNew(void)
@@ -1189,7 +1253,9 @@ void MenuItem_TitleScreen_StartNew(void)
 	gPlayer.PendingMovements = 0;
 	gPlayer.Speed = 2;
 
-	gGameState = GAMESTATE_OVERWORLD;
+	gGameIsInProgress = TRUE;
+	gPreviousGameState = gCurrentGameState;
+	gCurrentGameState = GAMESTATE_OVERWORLD;
 }
 
 void MenuItem_TitleScreen_Options(void)
@@ -1198,26 +1264,40 @@ void MenuItem_TitleScreen_Options(void)
 
 void MenuItem_TitleScreen_Exit(void)
 {
+	gPreviousGameState = gCurrentGameState;
+	gCurrentGameState = GAMESTATE_EXITYESNOSCREEN;
+}
+
+void MenuItem_ExitYesNo_Yes(void)
+{
 	SendMessageA(gGameWindow, WM_CLOSE, 0, 0);
 }
 
-void PPI_TitleScreen(void)
+void MenuItem_ExitYesNo_No(void)
+{
+	gDesiredGameState = gPreviousGameState;
+	gPreviousGameState = gCurrentGameState;
+	gCurrentGameState = gDesiredGameState;
+}
+
+void PPI_Menu(_In_ MENU* Menu)
 {
 	if (gGameInput.DownKeyIsDown && !gGameInput.DownKeyWasDown)
 	{
-		gMenu_TitleScreen.SelectedItem += 1;
-		gMenu_TitleScreen.SelectedItem %= gMenu_TitleScreen.ItemCount;
+		Menu->SelectedItem += 1;
+		Menu->SelectedItem %= Menu->ItemCount;
 		PlayGameSound(&gMenuMoveSound);
 	}
 	else if (gGameInput.UpKeyIsDown && !gGameInput.UpKeyWasDown)
 	{
-		gMenu_TitleScreen.SelectedItem -= 1;
-		gMenu_TitleScreen.SelectedItem %= gMenu_TitleScreen.ItemCount;
+		Menu->SelectedItem -= 1;
+		Menu->SelectedItem %= Menu->ItemCount;
 		PlayGameSound(&gMenuMoveSound);
 	}
 	else if (gGameInput.EnterKeyIsDown && !gGameInput.EnterKeyWasDown)
 	{
-		gMenu_TitleScreen.Items[gMenu_TitleScreen.SelectedItem]->Action();
+		Menu->Items[Menu->SelectedItem]->Action();
+		PlayGameSound(&gMenuReturnSound);
 	}
 }
 
@@ -1228,10 +1308,6 @@ void PPI_OpeningSplashScreen(void)
 void PPI_Overworld(void)
 {
 	int16_t RightOrLeftIsDown = gGameInput.LeftKeyIsDown || gGameInput.RightKeyIsDown;
-	if (gGameInput.EscapeKeyIsDown)
-	{
-		gGameState = GAMESTATE_TITLESCREEN;
-	}
 
 	if (gGameInput.LeftKeyIsDown)
 	{
@@ -1338,6 +1414,7 @@ DWORD LoadWavFromFile(_In_ char* FileName, _Inout_ GAMESOUND* GameSound)
 	DWORD DataChunkSearcher = 0;
 	BOOL DataChunkFound = FALSE;
 	DWORD DataChunkSize = 0;
+	void* AudioData = NULL;
 
 	HANDLE FileHandle = INVALID_HANDLE_VALUE;
 	FileHandle = CreateFileA(FileName, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
@@ -1452,8 +1529,8 @@ DWORD LoadWavFromFile(_In_ char* FileName, _Inout_ GAMESOUND* GameSound)
 		goto Exit;
 	}
 
-	GameSound->Buffer.pAudioData = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, DataChunkSize);
-	if (GameSound->Buffer.pAudioData == 0)
+	AudioData = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, DataChunkSize);
+	if (AudioData == NULL)
 	{
 		Result = ERROR_NOT_ENOUGH_MEMORY;
 
@@ -1471,7 +1548,7 @@ DWORD LoadWavFromFile(_In_ char* FileName, _Inout_ GAMESOUND* GameSound)
 		goto Exit;
 	}
 
-	if (ReadFile(FileHandle, GameSound->Buffer.pAudioData, DataChunkSize, &NumberOfBytesRead, NULL) == 0)
+	if (ReadFile(FileHandle, AudioData, DataChunkSize, &NumberOfBytesRead, NULL) == 0)
 	{
 		Result = GetLastError();
 
@@ -1479,6 +1556,8 @@ DWORD LoadWavFromFile(_In_ char* FileName, _Inout_ GAMESOUND* GameSound)
 
 		goto Exit;
 	}
+
+	GameSound->Buffer.pAudioData = AudioData;
 
 	GameSound->Buffer.Flags = XAUDIO2_END_OF_STREAM;
 	GameSound->Buffer.AudioBytes = DataChunkSize;
