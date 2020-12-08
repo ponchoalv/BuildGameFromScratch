@@ -81,6 +81,7 @@ typedef struct GAMEINPUT
 	int16_t DownKeyIsDown;
 	int16_t EnterKeyIsDown;
 
+	int16_t EscapeKeyWasDown;
 	int16_t DebugKeyWasDown;
 	int16_t LeftKeyWasDown;
 	int16_t RightKeyWasDown;
@@ -208,7 +209,7 @@ void ShowDebugInformation(void);
 
 void DrawOpeningSplashScreen(void);
 
-void PPI_TitleScreen(void);
+
 void PPI_OpeningSplashScreen(void);
 void PPI_Overworld(void);
 
