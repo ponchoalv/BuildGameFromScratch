@@ -114,6 +114,13 @@ typedef struct GAMEBITMAP
 	void* Memory;
 } GAMEBITMAP;
 
+
+typedef struct GAMESOUND
+{
+	WAVEFORMATEX WaveFormat;
+	XAUDIO2_BUFFER Buffer;
+} GAMESOUND;
+
 typedef struct PIXEL32
 {
 	uint8_t Blue;
@@ -206,6 +213,10 @@ void PPI_OpeningSplashScreen(void);
 void PPI_Overworld(void);
 
 HRESULT InitializeSoundEngine(void);
+
+DWORD LoadWavFromFile(_In_ char* FileName, _Inout_ GAMESOUND* GameSound);
+
+void PlayGameSound(_In_ GAMESOUND* GameSound);
 
 #ifdef AVX2
 void ClearScreen(_In_ __m512i* Color);

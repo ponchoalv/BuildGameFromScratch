@@ -62,10 +62,10 @@ IXAudio2* gXAudio;
 IXAudio2MasteringVoice* gXAudioMasteringVoice;
 IXAudio2SourceVoice* gXAudioSFXSourceVoice[NUMBER_OF_SFX_SOURCE_VOICES];
 IXAudio2SourceVoice* gXAudioMusicSourceVoice;
-
 uint8_t gSFXSourceVoiceSelector;
 float gSFXVolume = 0.5f;
 float gMusicVolume = 0.5f;
+GAMESOUND gMenuMoveSound;
 
 INT __stdcall WinMain(_In_ HINSTANCE Instance, _In_opt_ HINSTANCE PreviousInstance, _In_ PSTR CommandLine, _In_ INT CmdShow)
 {
@@ -144,6 +144,14 @@ INT __stdcall WinMain(_In_ HINSTANCE Instance, _In_opt_ HINSTANCE PreviousInstan
 		MessageBoxA(NULL, "InitializeSoundEngine failded!", "Error", MB_ICONEXCLAMATION | MB_OK);
 		goto Exit;
 	}
+
+	if (FAILED(LoadWavFromFile("Assets\\MenuSelect.wav", &gMenuMoveSound)))
+	{
+		MessageBoxA(NULL, "Initialize gMenuMoveSound failded!", "Error", MB_ICONEXCLAMATION | MB_OK);
+		goto Exit;
+	}
+
+
 
 	QueryPerformanceFrequency((LARGE_INTEGER*)&gPerformanceData.PerfFrequency);
 
@@ -644,15 +652,24 @@ DWORD Load32BppBitmapFromFile(_In_ char* FileName, _Inout_ GAMEBITMAP* GameBitma
 		goto Exit;
 	}
 
-	LogMessageA(LL_INFO, "[%s] Succesfuly loaded: [%s]", __FUNCTION__, FileName);
-
 Exit:
+
+	if (Result == ERROR_SUCCESS)
+	{
+		LogMessageA(LL_INFO, "[%s]Succesfully loaded: [%s]", __FUNCTION__, FileName);
+	}
+	else
+	{
+		LogMessageA(LL_ERROR, "[%s]Failed to load bitmap asset: [%s] with error 0x%0blx!", __FUNCTION__, FileName, Result);
+	}
+
+
 	if (FileHandle && FileHandle != INVALID_HANDLE_VALUE)
 	{
 		CloseHandle(FileHandle);
 	}
 
-	return Result;
+	return(Result);
 }
 
 DWORD InitializeHero(void)
@@ -1190,11 +1207,13 @@ void PPI_TitleScreen(void)
 	{
 		gMenu_TitleScreen.SelectedItem += 1;
 		gMenu_TitleScreen.SelectedItem %= gMenu_TitleScreen.ItemCount;
+		PlayGameSound(&gMenuMoveSound);
 	}
 	else if (gGameInput.UpKeyIsDown && !gGameInput.UpKeyWasDown)
 	{
 		gMenu_TitleScreen.SelectedItem -= 1;
 		gMenu_TitleScreen.SelectedItem %= gMenu_TitleScreen.ItemCount;
+		PlayGameSound(&gMenuMoveSound);
 	}
 	else if (gGameInput.EnterKeyIsDown && !gGameInput.EnterKeyWasDown)
 	{
@@ -1279,7 +1298,7 @@ HRESULT InitializeSoundEngine(void)
 	for (uint8_t Counter = 0; Counter < NUMBER_OF_SFX_SOURCE_VOICES; Counter++)
 	{
 		Result = gXAudio->lpVtbl->CreateSourceVoice(gXAudio, &gXAudioSFXSourceVoice[Counter], &SfxWaveFormat, 0, XAUDIO2_DEFAULT_FREQ_RATIO, NULL, NULL, NULL);
-		
+
 		if (FAILED(Result))
 		{
 			LogMessageA(LL_ERROR, "[%s] CreateSourceVoice with Counter %i failed with 0x%08lx!", __FUNCTION__, Counter, Result);
@@ -1308,6 +1327,189 @@ HRESULT InitializeSoundEngine(void)
 
 Exit:
 	return(Result);
+}
+
+DWORD LoadWavFromFile(_In_ char* FileName, _Inout_ GAMESOUND* GameSound)
+{
+	DWORD Result = ERROR_SUCCESS;
+	DWORD NumberOfBytesRead = 0;
+	DWORD Riff = 0;
+	uint16_t DataChunkOffset = 0;
+	DWORD DataChunkSearcher = 0;
+	BOOL DataChunkFound = FALSE;
+	DWORD DataChunkSize = 0;
+
+	HANDLE FileHandle = INVALID_HANDLE_VALUE;
+	FileHandle = CreateFileA(FileName, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+
+	if (GetLastError() == ERROR_FILE_NOT_FOUND)
+	{
+		Result = ERROR_FILE_NOT_FOUND;
+
+		LogMessageA(LL_ERROR, "[%s]Failded loading Wav from disk, file not found", __FUNCTION__);
+
+		goto Exit;
+	}
+
+	if (ReadFile(FileHandle, &Riff, sizeof(DWORD), &NumberOfBytesRead, NULL) == 0)
+	{
+		Result = GetLastError();
+
+		goto Exit;
+	}
+
+	if (Riff != 0x46464952) // "RIFF" Backwards
+	{
+		Result = ERROR_FILE_INVALID;
+
+		LogMessageA(LL_ERROR, "[%s]First four bytes are not 'RIFF'", __FUNCTION__);
+
+		goto Exit;
+	}
+
+	if (SetFilePointer(FileHandle, 20, NULL, FILE_BEGIN) == INVALID_SET_FILE_POINTER)
+	{
+		Result = GetLastError();
+
+		LogMessageA(LL_ERROR, "[%s]SetFilePointer failed with 0x%08lx!", __FUNCTION__, Result);
+
+		goto Exit;
+	}
+
+	if (ReadFile(FileHandle, &GameSound->WaveFormat, sizeof(WAVEFORMATEX), &NumberOfBytesRead, NULL) == 0)
+	{
+		Result = GetLastError();
+		LogMessageA(LL_ERROR, "[%s]ReadFile failed with 0x%08lx!", __FUNCTION__, Result);
+
+		goto Exit;
+	}
+
+	if (GameSound->WaveFormat.nBlockAlign != ((GameSound->WaveFormat.nChannels * GameSound->WaveFormat.wBitsPerSample) / 8) ||
+		(GameSound->WaveFormat.wFormatTag != WAVE_FORMAT_PCM) ||
+		(GameSound->WaveFormat.wBitsPerSample != 16))
+	{
+		Result = ERROR_DATATYPE_MISMATCH;
+
+		LogMessageA(LL_ERROR, "[%s]This wav file dis not meet the format requirements: Only PCM, 44.1KHz, 16 bit bits per sample wav files are supported. Error 0x%08lx!", __FUNCTION__, Result);
+		
+		goto Exit;
+	}
+
+	while (DataChunkFound == FALSE)
+	{
+
+		if (SetFilePointer(FileHandle, DataChunkOffset, NULL, FILE_BEGIN) == INVALID_SET_FILE_POINTER)
+		{
+			Result = GetLastError();
+
+			LogMessageA(LL_ERROR, "[%s]SetFilePointer failed with 0x%08lx!", __FUNCTION__, Result);
+
+			goto Exit;
+		}
+
+		if (ReadFile(FileHandle,&DataChunkSearcher, sizeof(DWORD), &NumberOfBytesRead, NULL) == 0)
+		{
+			Result = GetLastError();
+			LogMessageA(LL_ERROR, "[%s]ReadFile failed with 0x%08lx!", __FUNCTION__, Result);
+
+			goto Exit;
+		}
+
+		if (DataChunkSearcher == 0x61746164) // 'data', backwards
+		{
+			DataChunkFound = TRUE;
+		}
+		else
+		{
+			DataChunkOffset += 4;
+		}
+
+		if (DataChunkOffset > 256)
+		{
+			Result = ERROR_DATATYPE_MISMATCH;
+
+			LogMessageA(LL_ERROR, "[%s]Data chunk not found within first 256 bytes of this file 0x%08lx!", __FUNCTION__, Result);
+
+			goto Exit;
+		}
+	}
+
+	if (SetFilePointer(FileHandle, DataChunkOffset + 4, NULL, FILE_BEGIN) == INVALID_SET_FILE_POINTER)
+	{
+		Result = GetLastError();
+
+		LogMessageA(LL_ERROR, "[%s]SetFilePointer failed with 0x%08lx!", __FUNCTION__, Result);
+
+		goto Exit;
+	}
+
+	if (ReadFile(FileHandle, &DataChunkSize, sizeof(DWORD), &NumberOfBytesRead, NULL) == 0)
+	{
+		Result = GetLastError();
+		
+		LogMessageA(LL_ERROR, "[%s]ReadFile failed with 0x%08lx!", __FUNCTION__, Result);
+
+		goto Exit;
+	}
+
+	GameSound->Buffer.pAudioData = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, DataChunkSize);
+	if (GameSound->Buffer.pAudioData == 0)
+	{
+		Result = ERROR_NOT_ENOUGH_MEMORY;
+
+		LogMessageA(LL_ERROR, "[%s]HeapAlloc failed with 0x%08lx!", __FUNCTION__, Result);
+
+		goto Exit;
+	}
+
+	if (SetFilePointer(FileHandle, DataChunkOffset + 8, NULL, FILE_BEGIN) == INVALID_SET_FILE_POINTER)
+	{
+		Result = GetLastError();
+
+		LogMessageA(LL_ERROR, "[%s]SetFilePointer failed with 0x%08lx!", __FUNCTION__, Result);
+
+		goto Exit;
+	}
+
+	if (ReadFile(FileHandle, GameSound->Buffer.pAudioData, DataChunkSize, &NumberOfBytesRead, NULL) == 0)
+	{
+		Result = GetLastError();
+
+		LogMessageA(LL_ERROR, "[%s]ReadFile failed with 0x%08lx!", __FUNCTION__, Result);
+
+		goto Exit;
+	}
+
+	GameSound->Buffer.Flags = XAUDIO2_END_OF_STREAM;
+	GameSound->Buffer.AudioBytes = DataChunkSize;
+
+Exit:
+	
+	if (Result == ERROR_SUCCESS)
+	{
+		LogMessageA(LL_INFO, "[%s]Succesfully loaded asset: [%s]", __FUNCTION__, FileName);
+	}
+	else
+	{
+		LogMessageA(LL_ERROR, "[%s]Failed to load wav asset: [%s] with error 0x%0blx!", __FUNCTION__, FileName, Result);
+	}
+
+	if (FileHandle && (FileHandle != INVALID_HANDLE_VALUE))
+	{
+		CloseHandle(FileHandle);
+	}
+
+	return(Result);
+}
+
+void PlayGameSound(_In_ GAMESOUND* GameSound)
+{
+	gXAudioSFXSourceVoice[gSFXSourceVoiceSelector]->lpVtbl->SubmitSourceBuffer(gXAudioSFXSourceVoice[gSFXSourceVoiceSelector], &GameSound->Buffer, NULL);
+
+	gXAudioSFXSourceVoice[gSFXSourceVoiceSelector]->lpVtbl->Start(gXAudioSFXSourceVoice[gSFXSourceVoiceSelector], 0, XAUDIO2_COMMIT_NOW);
+
+	gSFXSourceVoiceSelector++;
+	gSFXSourceVoiceSelector %= NUMBER_OF_SFX_SOURCE_VOICES;
 }
 
 
