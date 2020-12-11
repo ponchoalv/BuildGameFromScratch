@@ -75,5 +75,8 @@
     <Media Include="Assets\MenuReturn.wav">
       <Filter>Resource Files</Filter>
     </Media>
+    <Media Include="Assets\SplashScreen.wav">
+      <Filter>Resource Files</Filter>
+    </Media>
   </ItemGroup>
 </Project>
