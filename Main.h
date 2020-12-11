@@ -24,7 +24,7 @@
 				}
 #else
 #define ASSERT(Expresion, Message, ...)
-#endif
+#endif                                                             \
 
 #define GAME_NAME		"Game_B"
 #define GAME_VERSION	"0.27"

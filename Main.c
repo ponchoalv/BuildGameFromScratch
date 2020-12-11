@@ -69,9 +69,9 @@ uint8_t gSFXSourceVoiceSelector;
 float gSFXVolume = 0.5f;
 float gMusicVolume = 0.5f;
 
-GAMESOUND gMenuMoveSound;
-GAMESOUND gMenuReturnSound;
-GAMESOUND gSplashScreenSound;
+GAMESOUND gSound_MenuNavigate;
+GAMESOUND gSound_MenuChoose;
+GAMESOUND gSound_SplashScreen;
 
 INT __stdcall WinMain(_In_ HINSTANCE Instance, _In_opt_ HINSTANCE PreviousInstance, _In_ PSTR CommandLine, _In_ INT CmdShow)
 {
@@ -151,19 +151,19 @@ INT __stdcall WinMain(_In_ HINSTANCE Instance, _In_opt_ HINSTANCE PreviousInstan
 		goto Exit;
 	}
 
-	if (FAILED(LoadWavFromFile("Assets\\MenuSelect.wav", &gMenuMoveSound)))
+	if (FAILED(LoadWavFromFile("Assets\\MenuSelect.wav", &gSound_MenuNavigate)))
 	{
 		MessageBoxA(NULL, "Initialize gMenuMoveSound failded!", "Error", MB_ICONEXCLAMATION | MB_OK);
 		goto Exit;
 	}
 
-	if (FAILED(LoadWavFromFile("Assets\\MenuReturn.wav", &gMenuReturnSound)))
+	if (FAILED(LoadWavFromFile("Assets\\MenuReturn.wav", &gSound_MenuChoose)))
 	{
 		MessageBoxA(NULL, "Initialize gMenuMoveSound failded!", "Error", MB_ICONEXCLAMATION | MB_OK);
 		goto Exit;
 	}
 
-	if (FAILED(LoadWavFromFile("Assets\\SplashScreen.wav", &gSplashScreenSound)))
+	if (FAILED(LoadWavFromFile("Assets\\SplashScreen.wav", &gSound_SplashScreen)))
 	{
 		MessageBoxA(NULL, "Initialize gMenuMoveSound failded!", "Error", MB_ICONEXCLAMATION | MB_OK);
 		goto Exit;
@@ -561,22 +561,18 @@ void RenderFrameGraphics(void)
 
 		case GAMESTATE_TITLESCREEN:
 		{
-			PIXEL32 White = { 0xFF, 0xFF, 0xFF, 0xFF };
-
-			DrawMenu(&gMenu_TitleScreen, &White);
+			DrawMenu(&gMenu_TitleScreen);
 			break;
 		}
 		case GAMESTATE_EXITYESNOSCREEN:
 		{
-			PIXEL32 Red = { 0x00, 0x00, 0xFF, 0xFF };
-			DrawMenu(&gMenu_ExitYesNoScreen, &Red);
+			DrawMenu(&gMenu_ExitYesNoScreen);
 			break;
 		}
 
 		case GAMESTATE_GAMEPADUNPLUGGED:
 		{
-			PIXEL32 Yellow = { 0x00, 0xB6, 0xFF, 0xFF };
-			DrawMenu(&gMenu_GamepadUnpluggedScreen, &Yellow);
+			DrawMenu(&gMenu_GamepadUnpluggedScreen);
 			break;
 		}
 
@@ -1303,54 +1299,21 @@ void DrawOpeningSplashScreen(void)
 
 		if (LocalFrameCounter == 60)
 		{
-			PlayGameSound(&gSplashScreenSound);
+			PlayGameSound(&gSound_SplashScreen);
 		}
 
-		if (LocalFrameCounter == 120)
-		{
-			Color.Blue -= BrightnessModifier;
-			Color.Red -= BrightnessModifier;
-			Color.Green -= BrightnessModifier;
-		}
-		if (LocalFrameCounter == 130)
-		{
-			Color.Blue -= BrightnessModifier;
-			Color.Red -= BrightnessModifier;
-			Color.Green -= BrightnessModifier;
-		}
-		if (LocalFrameCounter == 140)
+		if (LocalFrameCounter >= 120 && LocalFrameCounter % 10 == 0)
 		{
 			Color.Blue -= BrightnessModifier;
 			Color.Red -= BrightnessModifier;
 			Color.Green -= BrightnessModifier;
 		}
 
-		if (LocalFrameCounter == 150)
+		if (LocalFrameCounter >= 190)
 		{
-			Color.Blue -= BrightnessModifier;
-			Color.Red -= BrightnessModifier;
-			Color.Green -= BrightnessModifier;
-		}
-
-		if (LocalFrameCounter == 160)
-		{
-			Color.Blue -= BrightnessModifier;
-			Color.Red -= BrightnessModifier;
-			Color.Green -= BrightnessModifier;
-		}
-
-		if (LocalFrameCounter == 170)
-		{
-			Color.Blue -= BrightnessModifier;
-			Color.Red -= BrightnessModifier;
-			Color.Green -= BrightnessModifier;
-		}
-
-		if (LocalFrameCounter == 180)
-		{
-			Color.Blue -= BrightnessModifier;
-			Color.Red -= BrightnessModifier;
-			Color.Green -= BrightnessModifier;
+			Color.Blue = 0;
+			Color.Red = 0;
+			Color.Green = 0;
 		}
 
 		if (LocalFrameCounter == 200)
@@ -1416,24 +1379,69 @@ void DrawOptionsValues(void)
 		gMenu_OptionScreen.Items[2]->y);
 }
 
-void DrawMenu(_In_ MENU* Menu, _In_ PIXEL32* Color)
+void DrawMenu(_Inout_ MENU* Menu)
 {
-
 	if (gPerformanceData.TotalFramesRendered > (Menu->LastFrameSeen + 1))
 	{
+		Menu->LastFrameSeen = 0;
+		Menu->LocalFrameCounter = 0;
 		Menu->SelectedItem = 0;
+
+		Menu->ActiveForegroundColor->Blue = Menu->BackgroundColor->Blue;
+		Menu->ActiveForegroundColor->Red = Menu->BackgroundColor->Red;
+		Menu->ActiveForegroundColor->Green = Menu->BackgroundColor->Green;
+		Menu->ActiveForegroundColor->Alpha = Menu->BackgroundColor->Alpha;
 	}
 
-	memset(gBackBuffer.Memory, 0, GAME_DRAWING_AREA_MEMORY_SIZE);
 
-	BlitStringToScreen(Menu->Name, &g6x7Font, Color, CENTER(strlen(Menu->Name)), 60);
+	//	  AARRGGBB
+	//	0xFFFF0000 -> Red
+	//	0xFF00FF00 -> Green
+	//	0xFF0000FF -> Blue
+	DWORD BackColor = (Menu->BackgroundColor->Blue << 0) | (Menu->BackgroundColor->Green << 8) | (Menu->BackgroundColor->Red << 16) | (Menu->BackgroundColor->Alpha << 24);
+
+	__stosd(gBackBuffer.Memory, BackColor, GAME_DRAWING_AREA_MEMORY_SIZE / sizeof(DWORD));
+
+
+	if (Menu->LocalFrameCounter < 90 && !Menu->HaveBeenDraw)
+	{
+		if (Menu->LocalFrameCounter == 0)
+		{
+			Menu->ActiveForegroundColor->Blue = Menu->BackgroundColor->Blue;
+			Menu->ActiveForegroundColor->Red = Menu->BackgroundColor->Red;
+			Menu->ActiveForegroundColor->Green = Menu->BackgroundColor->Green;
+			Menu->ActiveForegroundColor->Alpha = Menu->BackgroundColor->Alpha;
+		}
+
+		if (Menu->LocalFrameCounter >= 10 && Menu->LocalFrameCounter % 10 == 0)
+		{
+			Menu->ActiveForegroundColor->Blue = (Menu->ForegroundColor->Blue - (Menu->ForegroundColor->Blue % Menu->LocalFrameCounter));
+			Menu->ActiveForegroundColor->Red = (Menu->ForegroundColor->Red - (Menu->ForegroundColor->Red % Menu->LocalFrameCounter));
+			Menu->ActiveForegroundColor->Green = (Menu->ForegroundColor->Green - (Menu->ForegroundColor->Green % Menu->LocalFrameCounter));
+		}
+
+		if (Menu->LocalFrameCounter >= 80)
+		{
+			Menu->ActiveForegroundColor->Blue = Menu->ForegroundColor->Blue;
+			Menu->ActiveForegroundColor->Red = Menu->ForegroundColor->Red;
+			Menu->ActiveForegroundColor->Green = Menu->ForegroundColor->Green;
+			Menu->ActiveForegroundColor->Alpha = Menu->ForegroundColor->Alpha;
+			Menu->HaveBeenDraw = TRUE;
+		}
+
+		BlitStringToScreen(Menu->Name, &g6x7Font, Menu->ActiveForegroundColor, CENTER(strlen(Menu->Name)), 60);
+	}
+	else
+	{
+		BlitStringToScreen(Menu->Name, &g6x7Font, Menu->ForegroundColor, CENTER(strlen(Menu->Name)), 60);
+	}
 
 	for (uint8_t MenuItem = 0; MenuItem < Menu->ItemCount; MenuItem++)
 	{
 		BlitStringToScreen(
 			Menu->Items[MenuItem]->Name,
 			&g6x7Font,
-			Color,
+			Menu->ForegroundColor,
 			Menu->Items[MenuItem]->x,
 			Menu->Items[MenuItem]->y);
 	}
@@ -1441,7 +1449,7 @@ void DrawMenu(_In_ MENU* Menu, _In_ PIXEL32* Color)
 	BlitStringToScreen(
 		"\xBB",
 		&g6x7Font,
-		Color,
+		Menu->ForegroundColor,
 		Menu->Items[Menu->SelectedItem]->x - 6,
 		Menu->Items[Menu->SelectedItem]->y);
 
@@ -1527,7 +1535,7 @@ void MenuItem_OptionsScren_Resolution(void)
 	gPerformanceData.WindowWidth -= (uint32_t)(gPerformanceData.WindowWidth * 0.1);
 	gPerformanceData.WindowHeight -= (uint32_t)(gPerformanceData.WindowHeight * 0.1);
 
-	if (gPerformanceData.WindowWidth > gPerformanceData.MonitorWidth || 
+	if (gPerformanceData.WindowWidth > gPerformanceData.MonitorWidth ||
 		gPerformanceData.WindowHeight > gPerformanceData.MonitorHeight ||
 		gPerformanceData.WindowWidth < GAME_RES_WIDTH ||
 		gPerformanceData.WindowHeight < GAME_RES_HEIGHT)
@@ -1554,7 +1562,7 @@ void PPI_Menu(_In_ MENU* Menu)
 			Menu->SelectedItem = 0;
 		}
 
-		PlayGameSound(&gMenuMoveSound);
+		PlayGameSound(&gSound_MenuNavigate);
 	}
 	else if (gGameInput.UpKeyIsDown && !gGameInput.UpKeyWasDown)
 	{
@@ -1563,12 +1571,12 @@ void PPI_Menu(_In_ MENU* Menu)
 			Menu->SelectedItem = Menu->ItemCount - 1;
 		}
 
-		PlayGameSound(&gMenuMoveSound);
+		PlayGameSound(&gSound_MenuNavigate);
 	}
 	else if (gGameInput.EnterKeyIsDown && !gGameInput.EnterKeyWasDown)
 	{
 		Menu->Items[Menu->SelectedItem]->Action();
-		PlayGameSound(&gMenuReturnSound);
+		PlayGameSound(&gSound_MenuChoose);
 	}
 }
 
@@ -1870,7 +1878,7 @@ void GoBack(void)
 	gDesiredGameState = gPreviousGameState;
 	gPreviousGameState = gCurrentGameState;
 	gCurrentGameState = gDesiredGameState;
-	PlayGameSound(&gMenuReturnSound);
+	PlayGameSound(&gSound_MenuChoose);
 }
 
 void  UpdateSoundVolume(_Inout_ IXAudio2SourceVoice** SoundVoice, _In_ uint8_t Count, _In_ float Volume)
