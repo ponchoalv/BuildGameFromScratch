@@ -10,7 +10,7 @@
 #include <immintrin.h>
 #endif
 
-#ifdef SIMD
+#ifdef SSE2
 #include <emmintrin.h>
 #endif
 
@@ -26,8 +26,8 @@
 #define ASSERT(Expresion, Message, ...)
 #endif
 
-#define GAME_NAME		"GAME_B"
-#define GAME_VERSION	"0.22"
+#define GAME_NAME		"Game_B"
+#define GAME_VERSION	"0.27"
 #define GAME_RES_WIDTH	384
 #define GAME_RES_HEIGHT 240
 #define GAME_BPP		32
@@ -106,7 +106,8 @@ typedef enum GAMESTATE
 	GAMESTATE_OVERWORLD,
 	GAMESTATE_BATTLE,
 	GAMESTATE_OPTIONS,
-	GAMESTATE_EXITYESNOSCREEN
+	GAMESTATE_EXITYESNOSCREEN,
+	GAMESTATE_GAMEPADUNPLUGGED
 } GAMESTATE;
 
 typedef struct GAMEBITMAP
@@ -140,8 +141,11 @@ typedef struct GAMEPERFDATA
 	int64_t PerfFrequency;
 
 	MONITORINFO MonitorInfo;
-	int32_t MonitorWidth;
-	int32_t MonitorHeight;
+	uint32_t MonitorWidth;
+	uint32_t MonitorHeight;
+
+	uint32_t WindowWidth;
+	uint32_t WindowHeight;
 
 	BOOL DisplayDebugInfo;
 
@@ -164,7 +168,10 @@ typedef struct HERO
 	int16_t ScreenPosX;
 	int16_t ScreenPosY;
 
-	uint8_t Speed;
+	uint8_t SkipFrames;
+	uint8_t CurrentFrames;
+
+	BOOL Active;
 
 	uint8_t PendingMovements;
 	DIRECTION Direction;
@@ -179,6 +186,12 @@ typedef struct HERO
 typedef struct REGISTRYPARAMS
 {
 	DWORD LogLevel;
+	
+	DWORD SFXVolume;
+	DWORD MusicVolume;
+
+	DWORD WindowWidth;
+	DWORD WindowHeight;
 } REGISTRYPARAMS;
 
 DWORD CreateMainGameWindow(_In_ HINSTANCE Instance);
@@ -209,8 +222,12 @@ void ShowDebugInformation(void);
 
 void DrawOpeningSplashScreen(void);
 
+void DrawVolumenBar(_In_ float* Volume, _In_ uint16_t x, _In_ uint16_t y);
+
+void DrawOptionsValues(void);
 
 void PPI_OpeningSplashScreen(void);
+
 void PPI_Overworld(void);
 
 HRESULT InitializeSoundEngine(void);
@@ -218,6 +235,10 @@ HRESULT InitializeSoundEngine(void);
 DWORD LoadWavFromFile(_In_ char* FileName, _Inout_ GAMESOUND* GameSound);
 
 void PlayGameSound(_In_ GAMESOUND* GameSound);
+
+void GoBack(void);
+
+void UpdateSoundVolume(_Inout_ IXAudio2SourceVoice** SoundVoice, _In_ uint8_t Count, _In_ float Volume);
 
 #ifdef AVX2
 void ClearScreen(_In_ __m512i* Color);
@@ -228,3 +249,5 @@ void ClearScreen(_In_ __m128i* Color);
 #else
 void ClearScreen(_In_ PIXEL32* Color);
 #endif
+
+void ClearScreenEx(_In_ PIXEL32* Pixel);
