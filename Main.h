@@ -24,7 +24,7 @@
 				}
 #else
 #define ASSERT(Expresion, Message, ...)
-#endif
+#endif                                                             \
 
 #define GAME_NAME		"Game_B"
 #define GAME_VERSION	"0.27"
@@ -157,6 +157,13 @@ typedef struct GAMEPERFDATA
 	int64_t CurrentSystemTime;
 
 	double CPUPercent;
+
+	uint8_t MaxScaleFactor;
+	uint8_t CurrentScaleFactor;
+
+	uint16_t WindowsPosX;
+	uint16_t WindowsPosY;
+
 } GAMEPERFDATA;
 
 typedef struct HERO
