@@ -370,15 +370,30 @@ __forceinline DWORD CreateMainGameWindow(_In_ HINSTANCE Instance)
 	gPerformanceData.MonitorWidth = gPerformanceData.MonitorInfo.rcMonitor.right - gPerformanceData.MonitorInfo.rcMonitor.left;
 	gPerformanceData.MonitorHeight = gPerformanceData.MonitorInfo.rcMonitor.bottom - gPerformanceData.MonitorInfo.rcMonitor.top;
 
+	if (gPerformanceData.MonitorWidth / GAME_RES_WIDTH > gPerformanceData.MonitorHeight / GAME_RES_HEIGHT)
+	{
+		gPerformanceData.CurrentScaleFactor = (uint8_t)(gPerformanceData.MonitorHeight / GAME_RES_HEIGHT);
+		gPerformanceData.MaxScaleFactor = gPerformanceData.CurrentScaleFactor;
+	}
+	else
+	{
+		gPerformanceData.CurrentScaleFactor = (uint8_t)(gPerformanceData.MonitorWidth / GAME_RES_WIDTH);
+		gPerformanceData.MaxScaleFactor = gPerformanceData.CurrentScaleFactor;
+	}
+
+
 	if (gPerformanceData.WindowWidth == 0 ||
 		gPerformanceData.WindowHeight == 0 ||
 		gPerformanceData.WindowWidth > gPerformanceData.MonitorWidth ||
 		gPerformanceData.WindowHeight > gPerformanceData.MonitorHeight)
 	{
-		gPerformanceData.WindowHeight = gPerformanceData.MonitorHeight;
-		gPerformanceData.WindowWidth = gPerformanceData.MonitorWidth;
+		LogMessageA(LL_INFO, "[%s] The window size was setup to the monitor maximun resolution.", __FUNCTION__);
+		gPerformanceData.WindowHeight = gPerformanceData.CurrentScaleFactor * GAME_RES_HEIGHT;
+		gPerformanceData.WindowWidth = gPerformanceData.CurrentScaleFactor * GAME_RES_WIDTH;
 	}
 
+	gPerformanceData.WindowsPosX = (uint16_t)(gPerformanceData.MonitorWidth / 2) - (uint16_t)(gPerformanceData.WindowWidth / 2);
+	gPerformanceData.WindowsPosY = (uint16_t)(gPerformanceData.MonitorHeight / 2) - (uint16_t)(gPerformanceData.WindowHeight / 2);
 
 	if (SetWindowLongPtrA(gGameWindow, GWL_STYLE, WS_VISIBLE) == 0)
 	{
@@ -388,8 +403,8 @@ __forceinline DWORD CreateMainGameWindow(_In_ HINSTANCE Instance)
 	}
 
 	if (SetWindowPos(gGameWindow, HWND_TOP,
-					 gPerformanceData.MonitorInfo.rcMonitor.left,
-					 gPerformanceData.MonitorInfo.rcMonitor.top,
+					 gPerformanceData.WindowsPosX,
+					 gPerformanceData.WindowsPosY,
 					 gPerformanceData.WindowWidth,
 					 gPerformanceData.WindowHeight,
 					 SWP_NOOWNERZORDER | SWP_FRAMECHANGED) == 0)
@@ -583,8 +598,7 @@ void RenderFrameGraphics(void)
 
 		case GAMESTATE_OPTIONS:
 		{
-			PIXEL32 White = { 0xFF, 0xFF, 0xFF, 0xFF };
-			DrawMenu(&gMenu_OptionScreen, &White);
+			DrawMenu(&gMenu_OptionScreen);
 			DrawOptionsValues();
 			break;
 		}
@@ -1415,12 +1429,12 @@ void DrawMenu(_Inout_ MENU* Menu)
 
 		if (Menu->LocalFrameCounter >= 10 && Menu->LocalFrameCounter % 10 == 0)
 		{
-			Menu->ActiveForegroundColor->Blue = (Menu->ForegroundColor->Blue - (Menu->ForegroundColor->Blue % Menu->LocalFrameCounter));
-			Menu->ActiveForegroundColor->Red = (Menu->ForegroundColor->Red - (Menu->ForegroundColor->Red % Menu->LocalFrameCounter));
-			Menu->ActiveForegroundColor->Green = (Menu->ForegroundColor->Green - (Menu->ForegroundColor->Green % Menu->LocalFrameCounter));
+			Menu->ActiveForegroundColor->Blue = (Menu->ForegroundColor->Blue  * (uint8_t)Menu->LocalFrameCounter / 80);
+			Menu->ActiveForegroundColor->Red = (Menu->ForegroundColor->Red * (uint8_t)Menu->LocalFrameCounter / 80);
+			Menu->ActiveForegroundColor->Green = (Menu->ForegroundColor->Green * (uint8_t)Menu->LocalFrameCounter / 80);
 		}
 
-		if (Menu->LocalFrameCounter >= 80)
+		if (Menu->LocalFrameCounter > 80)
 		{
 			Menu->ActiveForegroundColor->Blue = Menu->ForegroundColor->Blue;
 			Menu->ActiveForegroundColor->Red = Menu->ForegroundColor->Red;
@@ -1430,28 +1444,45 @@ void DrawMenu(_Inout_ MENU* Menu)
 		}
 
 		BlitStringToScreen(Menu->Name, &g6x7Font, Menu->ActiveForegroundColor, CENTER(strlen(Menu->Name)), 60);
+		
+		for (uint8_t MenuItem = 0; MenuItem < Menu->ItemCount; MenuItem++)
+		{
+			BlitStringToScreen(
+				Menu->Items[MenuItem]->Name,
+				&g6x7Font,
+				Menu->ActiveForegroundColor,
+				Menu->Items[MenuItem]->x,
+				Menu->Items[MenuItem]->y);
+		}
+
+		BlitStringToScreen(
+			"\xBB",
+			&g6x7Font,
+			Menu->ActiveForegroundColor,
+			Menu->Items[Menu->SelectedItem]->x - 6,
+			Menu->Items[Menu->SelectedItem]->y);
 	}
 	else
 	{
 		BlitStringToScreen(Menu->Name, &g6x7Font, Menu->ForegroundColor, CENTER(strlen(Menu->Name)), 60);
-	}
+		for (uint8_t MenuItem = 0; MenuItem < Menu->ItemCount; MenuItem++)
+		{
+			BlitStringToScreen(
+				Menu->Items[MenuItem]->Name,
+				&g6x7Font,
+				Menu->ForegroundColor,
+				Menu->Items[MenuItem]->x,
+				Menu->Items[MenuItem]->y);
+		}
 
-	for (uint8_t MenuItem = 0; MenuItem < Menu->ItemCount; MenuItem++)
-	{
 		BlitStringToScreen(
-			Menu->Items[MenuItem]->Name,
+			"\xBB",
 			&g6x7Font,
 			Menu->ForegroundColor,
-			Menu->Items[MenuItem]->x,
-			Menu->Items[MenuItem]->y);
+			Menu->Items[Menu->SelectedItem]->x - 6,
+			Menu->Items[Menu->SelectedItem]->y);
 	}
 
-	BlitStringToScreen(
-		"\xBB",
-		&g6x7Font,
-		Menu->ForegroundColor,
-		Menu->Items[Menu->SelectedItem]->x - 6,
-		Menu->Items[Menu->SelectedItem]->y);
 
 	Menu->LocalFrameCounter++;
 	Menu->LastFrameSeen = gPerformanceData.TotalFramesRendered;
@@ -1532,21 +1563,22 @@ void MenuItem_OptionsScren_MusicVolume(void)
 void MenuItem_OptionsScren_Resolution(void)
 {
 
-	gPerformanceData.WindowWidth -= (uint32_t)(gPerformanceData.WindowWidth * 0.1);
-	gPerformanceData.WindowHeight -= (uint32_t)(gPerformanceData.WindowHeight * 0.1);
+	gPerformanceData.CurrentScaleFactor -= 1;
 
-	if (gPerformanceData.WindowWidth > gPerformanceData.MonitorWidth ||
-		gPerformanceData.WindowHeight > gPerformanceData.MonitorHeight ||
-		gPerformanceData.WindowWidth < GAME_RES_WIDTH ||
-		gPerformanceData.WindowHeight < GAME_RES_HEIGHT)
+	if (gPerformanceData.CurrentScaleFactor == 0)
 	{
-		gPerformanceData.WindowWidth = gPerformanceData.MonitorWidth;
-		gPerformanceData.WindowHeight = gPerformanceData.MonitorHeight;
+		gPerformanceData.CurrentScaleFactor = gPerformanceData.MaxScaleFactor;
 	}
 
+	gPerformanceData.WindowWidth = gPerformanceData.CurrentScaleFactor * GAME_RES_WIDTH;
+	gPerformanceData.WindowHeight = gPerformanceData.CurrentScaleFactor * GAME_RES_HEIGHT;
+
+	gPerformanceData.WindowsPosX = (uint16_t)(gPerformanceData.MonitorWidth / 2) - (uint16_t)(gPerformanceData.WindowWidth / 2);
+	gPerformanceData.WindowsPosY = (uint16_t)(gPerformanceData.MonitorHeight / 2) - (uint16_t)(gPerformanceData.WindowHeight / 2);
+
 	SetWindowPos(gGameWindow, HWND_TOP,
-				 gPerformanceData.MonitorInfo.rcMonitor.left,
-				 gPerformanceData.MonitorInfo.rcMonitor.top,
+				 gPerformanceData.WindowsPosX,
+				 gPerformanceData.WindowsPosY,
 				 gPerformanceData.WindowWidth,
 				 gPerformanceData.WindowHeight,
 				 SWP_NOOWNERZORDER | SWP_FRAMECHANGED);

@@ -43,9 +43,9 @@ PIXEL32 gMenu_White = { 0xFF, 0xFF, 0xFF, 0xFF };
 
 // Title screen
 MENUITEM gMI_ResumeGame = { "Resume", CENTER(14), 100, MenuItem_TitleScreen_Resume };
-MENUITEM gMI_StartNewGame = { "Start New Game", CENTER(14), 120, MenuItem_TitleScreen_StartNew };
-MENUITEM gMI_Options = { "Options", CENTER(14), 140, MenuItem_TitleScreen_Options };
-MENUITEM gMI_Exit = { "Exit", CENTER(14), 160, MenuItem_TitleScreen_Exit };
+MENUITEM gMI_StartNewGame = { "Start New Game", CENTER(14), 115, MenuItem_TitleScreen_StartNew };
+MENUITEM gMI_Options = { "Options", CENTER(14), 130, MenuItem_TitleScreen_Options };
+MENUITEM gMI_Exit = { "Exit", CENTER(14), 145, MenuItem_TitleScreen_Exit };
 
 MENUITEM* gMI_TitleScreenItem[] = {&gMI_StartNewGame, &gMI_Options, &gMI_Exit }; // Without Resume
 MENUITEM* gMI_TitleScreenItemWithResume[] = { &gMI_ResumeGame, &gMI_StartNewGame, &gMI_Options, &gMI_Exit }; // With Resume
@@ -62,7 +62,7 @@ MENUITEM gMI_ExitYesNo_No = { "No", CENTER(3), 115, MenuItem_ExitYesNo_No };
 
 MENUITEM* gMI_ExitYesNoItem[] = { &gMI_ExitYesNo_No , &gMI_ExitYesNo_Yes };
 
-MENU gMenu_ExitYesNoScreen = { "Are you sure you want to exit?", 1, _countof(gMI_ExitYesNoItem), gMI_ExitYesNoItem, 0, 0,  &gMenu_Black, &gMenu_Red, &gMenu_YesNoActiveColor, FALSE };
+MENU gMenu_ExitYesNoScreen = { "Are you sure you want to exit?", 1, _countof(gMI_ExitYesNoItem), gMI_ExitYesNoItem, 0, 0,  &gMenu_Black, &gMenu_Red, &gMenu_YesNoActiveColor, TRUE };
 
 
 /// GamePad Unplugged
